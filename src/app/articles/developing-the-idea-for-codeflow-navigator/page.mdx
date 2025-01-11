@@ -1,0 +1,159 @@
+import { ArticleLayout } from '@/components/ArticleLayout'
+
+export const article = {
+  author: 'Robert Neyrinck',
+  date: '2024-12-10',
+  title: 'From Idea to MVP: Developing the Codeflow Navigator',
+  description:
+    'Learn how we took an AI-driven debugging navigator from concept to a tested minimum viable product, ensuring it solves real user problems along the way.',
+}
+
+export const metadata = {
+  title: article.title,
+  description: article.description,
+}
+
+export default (props) => <ArticleLayout article={article} {...props} />
+
+## Introduction
+
+Every engineer’s had that moment — they open an unfamiliar codebase and spend hours piecing together how everything fits. This idea sparked the **Codeflow Navigator**: an AI-assisted code-tracing tool that helps teams and new hires quickly understand where errors happen, how functions interact, and what matters most in a large project. Below is a look at how we **validated this idea**, **defined an MVP**, and planned to **build + test** a meaningful prototype.
+
+---
+
+## 1. Idea Validation
+
+We started by asking: *“What’s the real pain point?”*
+
+- **Target Users**: We identified five personas (Onboarding Engineer, Debugging Pro, Tech Lead, Polyglot Dev, Knowledge Preserver).
+- **Core Problem**: People needed a faster, more intuitive way to **trace errors** and **learn how code components interact**, especially in large, multi-language projects.
+
+### Validation Approach
+
+1. **User Interviews**: We spoke with junior devs (struggling to onboard), senior devs (stuck on debugging logs), and architects (needing real-time code insights).
+2. **Pain Points** repeatedly surfaced:
+   - Lack of **onboarding workflows**.
+   - Time-consuming **error-tracing** across files or microservices.
+3. **Key Insight**: A tool that automatically visualizes dependencies and error chains would reduce confusion for everyone.
+
+---
+
+## 2. MVP Definition
+
+Although we had grand visions of full AI-driven code navigation, we narrowed the scope to one primary persona: **The Onboarding Engineer**. Our **MVP** would let a new dev quickly grasp the codebase structure, highlight critical workflows, and provide short, dynamic guides.
+
+### MVP Features
+
+1. **Codebase Overview**
+   - Generate a high-level summary of the project (key modules, workflows).
+
+2. **File-Level Summaries**
+   - Provide short explanations of each file’s role and main functions.
+
+3. **Dynamic Onboarding Guide**
+   - Offer a step-by-step intro to important files and workflows.
+   - E.g., “Start with `App.js`, then check `routes/api.js`.”
+
+4. **Dependency Visualization**
+   - An interactive or generated map showing how modules connect.
+
+5. **Quick Search**
+   - Search for a function name/variable, see where it’s defined and used.
+
+---
+
+## 3. Development & Testing Plan
+
+### Phase 1: Core Functionality
+
+**Static Analysis Engine**
+- Build a parser (e.g., AST-based) for a single language (like JavaScript or Python).
+- Extract functions, imports, docstrings, etc.
+
+**Data Aggregation & Summaries**
+- Summarize each file:
+  - “Defines `validateUser()` and `loginHandler()`.”
+  - “Imports `db.js` and `logger.js`.”
+
+**Technical Approach**
+- Recursively scan the project to discover files.
+- Parse each file with Babel/Esprima (JS) or Python AST (Python).
+- Store results in a structured JSON object.
+
+### Phase 2: MVP Output
+
+**Dynamic Markdown File**
+- Convert the JSON into a `.md` file (e.g., `onboarding-guide.md`) that includes:
+  - Project overview
+  - Key files
+  - File-by-file summaries
+
+**Why Markdown?**
+- Lightweight, easy to share, and IDE-agnostic.
+- Acts as a single onboarding doc generated whenever a new dev joins.
+
+### Phase 3: IDE Integration (Optional Future)
+
+**VS Code Plugin**
+- A sidebar panel showing each file’s summary, dependencies, and “onboarding steps.”
+- Tooltips that reveal function insights on hover.
+
+### Phase 4: Advanced Features
+
+- **Error Workflow**: Paste an error log to see which file(s)/function(s) likely caused it.
+- **AI Summaries**: Use GPT or local models to refine “purpose” statements in the doc.
+- **Workflow Overlays**: Show how user actions (like logging in) travel through multiple files.
+
+---
+
+## 4. Testing Strategy
+
+We adopted **Test-Driven Development** for the core analysis engine:
+
+1. **Unit Tests**
+   - **File Discovery**: Ensures we only parse relevant files (no `node_modules`, etc.).
+   - **Parsing**: Confirms function, import extraction is correct (no false positives).
+
+2. **Integration Tests**
+   - End-to-end flow: run the tool on a mock project, confirm the generated `README.generated.md` matches expectations.
+
+3. **Mock Projects**
+   - A small codebase with multiple interdependent files.
+   - A more complex codebase with many functions to test the summarizer’s performance.
+
+### Example Test Cases
+
+**Workflow**:
+- **Input**: `python code-navigator /path/to/new_mock_project`
+- **Expected Output**: A markdown file describing each file’s purpose, list of functions, imports, and a short recommended learning path.
+
+---
+
+## 5. Example MVP Workflows
+
+### Onboarding Use Case
+
+- **Open** the auto-generated `README.generated.md`.
+- **See** a big-picture “project overview”: key tech used, main directories.
+- **Follow** the onboarding guide: “1) Read `App.js`; 2) See `routes/api.js`.”
+- **Understand** the role of each file and how it’s connected.
+
+### Debug Use Case (Future)
+
+- **Paste** an error log.
+- **Navigator** shows which file and function might be the source.
+- **Dev** jumps directly to the relevant snippet, seeing how the error might propagate.
+
+---
+
+## 6. Conclusion & Next Steps
+
+1. **Idea Validation**: Users want a single place for codebase onboarding and error tracing.
+2. **MVP**: Focus on **Onboarding Engineers** with file summaries, a project overview, and dynamic guides.
+3. **Development**: Start with a **static analysis engine** to parse code and produce **Markdown docs**.
+4. **Testing**: Mock projects, TDD for parsing, and checks for meaningful summaries.
+5. **Future**: Expand to real-time error tracing, deeper AI summaries, and full IDE integration.
+
+**Final Thought**: By anchoring our product design in real user needs (especially the Onboarding Engineer), we ensure the Codeflow Navigator tackles the biggest obstacles first. Over time, advanced features like error-driven insights and dependency mapping for distributed systems can evolve from the same core engine.
+
+> **Want more?** In the next article I'll break down the first few days of development where I finalized a very simple prototype based on this articles MVP definition. There’s a long roadmap ahead, but a solid MVP ensures we’re on the right track from day one.

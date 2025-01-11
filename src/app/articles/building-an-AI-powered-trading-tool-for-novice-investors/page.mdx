@@ -1,0 +1,850 @@
+import { ArticleLayout } from '@/components/ArticleLayout'
+
+export const article = {
+  author: 'Robert Neyrinck',
+  date: '2025-01-07',
+  title: 'How I Built an AI-Powered Trading Tool for Novice Investors',
+  description:
+    'Reflecting on my journey developing a machine learning–driven trading program to help people with little to no investing background grow their wealth.',
+}
+
+export const metadata = {
+  title: article.title,
+  description: article.description,
+}
+
+export default (props) => <ArticleLayout article={article} {...props} />
+
+Growing up, I remember hearing how investing could transform small savings into something meaningful. But whenever I talked to friends or family about investing, they were overwhelmed by complicated charts, technical jargon, and the fear of losing money they couldn’t afford to lose. That’s why I set out to build an **AI-powered investing broker** that would simplify the entire trading process for novice investors. Through the lens of four different versions, I refined my approach — ultimately aiming to create a reliable system anyone could leverage to grow their wealth with minimal stress.
+
+---
+
+## Version 1: Laying the Foundations
+
+I started with a baseline **Moving Average Strategy**. At this stage, my goal was to learn the core mechanics of programmatically analyzing stock data, generating signals, and visualizing results. Simplicity was key.
+
+- **Focus:** Two Simple Moving Averages (SMA)
+- **Signals:** Buy when the short SMA crosses above the long SMA, sell when it crosses below
+- **Outcome:** Gave me a taste of automated trades without diving into advanced machine learning
+
+I also wanted a quick way to see if my signals made sense, so I included a basic data plotting function. Here’s the entire Version 1 code:
+
+```python
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Example data format: a CSV file with columns 'Date', 'Open', 'High', 'Low', 'Close', 'Volume'
+def load_data(file_path):
+    data = pd.read_csv(file_path, parse_dates=['Date'], index_col='Date')
+    return data
+
+def moving_average_strategy(data, short_window=50, long_window=200):
+    # Create signals based on short and long moving averages
+    signals = pd.DataFrame(index=data.index)
+    signals['price'] = data['Close']
+
+    # Create short and long simple moving averages
+    signals['short_mavg'] = data['Close'].rolling(window=short_window, min_periods=1, center=False).mean()
+    signals['long_mavg'] = data['Close'].rolling(window=long_window, min_periods=1, center=False).mean()
+
+    # Create buy/sell signals: 1 for buy, 0 for sell
+    signals['signal'] = 0.0
+    signals['signal'][short_window:] = np.where(
+        signals['short_mavg'][short_window:] > signals['long_mavg'][short_window:], 1.0, 0.0
+    )
+
+    # Generate trading orders
+    signals['positions'] = signals['signal'].diff()
+
+    return signals
+
+def plot_signals(data, signals):
+    # Plot stock price with moving averages and buy/sell signals
+    plt.figure(figsize=(14, 8))
+    plt.plot(data.index, data['Close'], label='Close Price', alpha=0.5)
+    plt.plot(signals.index, signals['short_mavg'], label='50-Day Moving Average', alpha=0.5)
+    plt.plot(signals.index, signals['long_mavg'], label='200-Day Moving Average', alpha=0.5)
+
+    # Plot buy signals
+    plt.plot(signals.loc[signals['positions'] == 1.0].index,
+             signals['short_mavg'][signals['positions'] == 1.0],
+             '^', markersize=10, color='g', label='Buy Signal')
+
+    # Plot sell signals
+    plt.plot(signals.loc[signals['positions'] == -1.0].index,
+             signals['short_mavg'][signals['positions'] == -1.0],
+             'v', markersize=10, color='r', label='Sell Signal')
+
+    plt.title('Stock Price and Moving Averages')
+    plt.legend()
+    plt.show()
+
+if __name__ == '__main__':
+    # Load historical data from a CSV file
+    file_path = 'your_stock_data.csv'  # replace with your file path
+    data = load_data(file_path)
+
+    # Generate trading signals based on moving averages
+    signals = moving_average_strategy(data)
+
+    # Plot the results
+    plot_signals(data, signals)
+```
+
+At this point, I realized while this baseline worked on historical data, it wasn’t nearly enough to handle the complexities of live markets and user expectations for a “hands-free” AI broker.
+
+---
+
+## Version 2: Introducing Machine Learning
+
+The second iteration marked my leap into **ML-driven predictions**. I integrated a **Random Forest Regressor** to estimate potential trade profitability, leaning on real-time data through Alpaca’s trading API.
+
+- **Key Additions:**
+  - Connected to **Alpaca** for live data and placing real orders
+  - **Momentum** and **volume** features gave me a better sense of market moves
+  - Introduced a stop-loss mechanism to protect novices from big losses
+
+My end goal was to empower users who have no clue about reading candlestick charts or setting precise stop-loss levels. By using simple signals (like momentum or price change) alongside an ML model, the tool could do the heavy lifting.
+
+# Full Version 2 code
+```python
+import numpy as np
+import pandas as pd
+from alpaca.data import StockBarsRequest
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+from alpaca.data.historical import StockHistoricalDataClient
+from alpaca.trading.client import TradingClient
+from alpaca.trading.requests import MarketOrderRequest
+from alpaca.trading.enums import OrderSide, TimeInForce
+from alpaca.data.timeframe import TimeFrame
+
+# Alpaca API credentials
+API_KEY = ''
+API_SECRET = ''
+
+# Initialize Alpaca clients
+trading_client = TradingClient(API_KEY, API_SECRET, paper=True)
+data_client = StockHistoricalDataClient(API_KEY, API_SECRET)
+
+# Define strategy parameters
+PERCENTAGE_THRESHOLD = 0.2  # Price change for buy/sell signals
+STOP_LOSS_PERCENT = 1.0  # Stop-loss percentage
+MOMENTUM_THRESHOLD = 0.5  # Threshold for price momentum to delay a trade
+INITIAL_BALANCE = 10  # Starting balance
+MAX_STOCK_PRICE = 10  # Max price of stock
+DECISION_WINDOW = 5  # Number of intervals to monitor before executing trades
+TRAINING_INTERVAL = 10  # Number of trades after which to retrain the model
+
+# Define the list of low-cost stocks (under $10)
+low_cost_stocks = ['AAPL', 'AMD', 'TSLA', 'GEVO', 'NIO']  # Example stocks
+
+# Feature columns
+FEATURES = ['price', 'momentum', 'volume', 'price_change']
+
+# Initialize data for training
+training_data = pd.DataFrame(columns=FEATURES + ['outcome'])  # Store features and outcomes for model training
+
+# Initialize machine learning model (Random Forest)
+model = RandomForestRegressor(n_estimators=100)
+
+
+def get_stock_data(symbol, timeframe=TimeFrame.Minute, limit=100):
+    """Fetch historical stock data for a given symbol using Alpaca-py."""
+    symbol_request_param = StockBarsRequest(symbol_or_symbols=symbol, timeframe=timeframe)
+    bars_data = data_client.get_stock_bars(symbol_request_param)
+    bars=bars_data[symbol]
+    """
+    in stock.py
+        def get_bars(self, symbol, timeframe, limit):
+        symbol_request_param = StockBarsRequest(symbol_or_symbols=symbol, timeframe=timeframe)
+        bars = data_client.get_stock_bars(symbol_request_param)
+        return bars[symbol]
+    """
+    data = pd.DataFrame({
+        'time': [bar.timestamp for bar in bars],
+        'close': [bar.close for bar in bars],
+        'open': [bar.open for bar in bars],
+        'high': [bar.high for bar in bars],
+        'low': [bar.low for bar in bars],
+        'volume': [bar.volume for bar in bars]
+    }).set_index('time')
+    return data
+
+
+def generate_signals(data):
+    """Generate buy/sell signals with trend analysis."""
+    signals = pd.DataFrame(index=data.index)
+    signals['price'] = data['close']
+
+    # Calculate percentage change and momentum over 3 intervals
+    signals['price_change'] = data['close'].pct_change(3) * 100
+    signals['momentum'] = data['close'].diff(3)  # Momentum: price difference over 3 intervals
+    signals['volume'] = data['volume']
+
+    # Generate buy signals if price change exceeds threshold
+    signals['buy_signal'] = np.where(
+        (signals['price_change'] > PERCENTAGE_THRESHOLD) & (signals['momentum'] > MOMENTUM_THRESHOLD), 1.0, 0.0
+    )
+
+    # Generate sell signals if price is falling or stop-loss is triggered
+    signals['sell_signal'] = np.where(
+        (signals['price_change'] < 0) & (signals['momentum'] < -MOMENTUM_THRESHOLD), -1.0, 0.0
+    )
+
+    # Aggregate the positions (buy=1, sell=-1)
+    signals['positions'] = signals['buy_signal'] - signals['sell_signal']
+    return signals
+
+
+def should_delay_trade(data, i, action_type):
+    """Determine if the trade should be delayed based on momentum and trends."""
+    # Analyzing recent data to determine if waiting is a better option
+    recent_data = data.iloc[max(0, i - DECISION_WINDOW):i]
+
+    # Buy: if upward momentum is increasing, it might make sense to wait
+    if action_type == 'buy':
+        if recent_data['momentum'].mean() > MOMENTUM_THRESHOLD:
+            return True
+
+    # Sell: if downward momentum is decreasing, it might make sense to wait
+    if action_type == 'sell':
+        if recent_data['momentum'].mean() < -MOMENTUM_THRESHOLD:
+            return True
+
+    return False
+
+
+def execute_trade(symbol, buy=False, sell=False, qty=1):
+    """Executes a buy or sell order for a stock using Alpaca-py."""
+    if buy:
+        order = MarketOrderRequest(
+            symbol=symbol,
+            qty=qty,
+            side=OrderSide.BUY,
+            time_in_force=TimeInForce.GTC
+        )
+        trading_client.submit_order(order)
+        print(f"Buying {qty} shares of {symbol}.")
+    elif sell:
+        order = MarketOrderRequest(
+            symbol=symbol,
+            qty=qty,
+            side=OrderSide.SELL,
+            time_in_force=TimeInForce.GTC
+        )
+        trading_client.submit_order(order)
+        print(f"Selling {qty} shares of {symbol}.")
+
+
+def collect_training_data(price, momentum, volume, price_change, outcome):
+    """Collect data for training the model after each trade."""
+    global training_data
+    # Assuming 'outcome' is a continuous value (e.g., profit or loss amount)
+    new_data = pd.DataFrame([[price, momentum, volume, price_change, outcome]], columns=FEATURES + ['outcome'])
+    training_data = pd.concat([training_data, new_data])
+
+
+def retrain_model():
+    """Retrain the model with new data."""
+    global model
+    if len(training_data) >= TRAINING_INTERVAL:
+        X = training_data[FEATURES]
+        y = training_data['outcome']  # Continuous target variable (profit/loss)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+        model.fit(X_train, y_train)
+        y_pred = model.predict(X_test)
+        # Calculate a regression-based accuracy score (e.g., mean squared error)
+        mse = np.mean((y_pred - y_test) ** 2)
+        print(f"Model MSE: {mse:.2f}")
+
+
+def predict_trade_outcome(price, momentum, volume, price_change):
+    """Predict whether a trade will be profitable using the trained regressor model."""
+    feature_vector = np.array([[price, momentum, volume, price_change]])
+    predicted_profit = model.predict(feature_vector)[0]
+    return predicted_profit  # Continuous prediction (e.g., expected profit)
+
+
+def scalping_strategy():
+    """Main strategy with skipping logic to execute trades on a list of low-cost stocks."""
+    balance = INITIAL_BALANCE
+    portfolio = {}
+
+    for symbol in low_cost_stocks:
+        # Retrieve stock data for each stock
+        stock_data = get_stock_data(symbol)
+
+        # Generate buy/sell signals
+        signals = generate_signals(stock_data)
+
+        # Track if we own the stock
+        position = False
+
+        for i in range(len(signals)):
+            price = signals['price'].iloc[i]
+            momentum = signals['momentum'].iloc[i]
+            volume = signals['volume'].iloc[i]
+            price_change = signals['price_change'].iloc[i]
+
+            # Buy condition
+            if signals['positions'].iloc[i] == 1.0 and price <= MAX_STOCK_PRICE and balance >= price:
+                # Use the model to predict the outcome of the trade
+                predicted_outcome = predict_trade_outcome(price, momentum, volume, price_change)
+
+                if predicted_outcome == 1:  # Model predicts profit
+                    # Check if it makes sense to delay the buy
+                    if should_delay_trade(signals, i, 'buy'):
+                        print(f"Delaying buy for {symbol} at {price}")
+                        continue
+                    execute_trade(symbol, buy=True)
+                    portfolio[symbol] = price
+                    balance -= price
+                    position = True
+
+            # Sell condition
+            elif position and (
+                    signals['positions'].iloc[i] == -1.0 or price <= portfolio[symbol] * (1 - STOP_LOSS_PERCENT / 100)):
+                # Use the model to predict the outcome of the trade
+                predicted_outcome = predict_trade_outcome(price, momentum, volume, price_change)
+
+                if predicted_outcome == 1:  # Model predicts profit
+                    # Check if it makes sense to delay the sell
+                    if should_delay_trade(signals, i, 'sell'):
+                        print(f"Delaying sell for {symbol} at {price}")
+                        continue
+                    execute_trade(symbol, sell=True)
+                    balance += price
+                    position = False
+
+            # After each trade, collect the features and actual outcome
+            actual_outcome = 1 if balance > INITIAL_BALANCE else 0
+            collect_training_data(price, momentum, volume, price_change, actual_outcome)
+
+            # Retrain the model after collecting enough data
+            retrain_model()
+
+        # Print portfolio and balance status
+        print(f"Portfolio: {portfolio}")
+        print(f"Balance: {balance}")
+
+
+# Running the strategy with machine learning model integration
+scalping_strategy()
+
+```
+
+This taught me that **data is everything**. I had to keep collecting new data points each time the system executed a trade, then retrain the model to adapt to shifting market behaviors. It was a step closer to an AI that learns as it goes, but I still needed more robust retraining intervals and performance metrics.
+
+---
+
+## Version 3: Scaling Up and Speeding Up
+
+With Version 3, my priority shifted to **efficiency** and **rapid adaptability**. I refined threshold parameters and streamlined the backtesting process:
+
+- **Highlights:**
+  - Reduced the **decision window** so it could detect and act on quick market shifts
+  - Lower thresholds for price and momentum to get in and out more often
+  - More frequent retraining to handle market volatility
+
+I also formalized my backtesting to get a clearer sense of how this system performed over historical data. The integrated **mean squared error** (MSE) gave me a snapshot of how well my model predicted profitable trades.
+
+
+# Full Version 3 code
+```python
+
+import numpy as np
+import pandas as pd
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error
+from alpaca.data.historical import StockHistoricalDataClient
+from alpaca.trading.client import TradingClient
+from alpaca.trading.requests import MarketOrderRequest
+from alpaca.trading.enums import OrderSide, TimeInForce
+from alpaca.data.timeframe import TimeFrame
+
+# Alpaca API credentials
+API_KEY = ''
+API_SECRET = ''
+
+# Initialize Alpaca clients
+trading_client = TradingClient(API_KEY, API_SECRET, paper=True)
+data_client = StockHistoricalDataClient(API_KEY, API_SECRET)
+
+# Define strategy parameters
+PERCENTAGE_THRESHOLD = 0.1  # Lower price change threshold for buy/sell signals
+STOP_LOSS_PERCENT = 1.0  # Stop-loss percentage
+MOMENTUM_THRESHOLD = 0.1  # Lower momentum threshold
+INITIAL_BALANCE = 100000  # Starting balance
+MAX_STOCK_PRICE = 10000  # Max price of stock
+DECISION_WINDOW = 3  # Reduce decision window to trigger trades faster
+TRAINING_INTERVAL = 5  # Retrain model more frequently
+
+# Define the list of low-cost stocks (under $10)
+low_cost_stocks = ['AAPL', 'AMD', 'GEVO', 'NIO']  # Example stocks
+
+# Feature columns
+FEATURES = ['price', 'momentum', 'volume', 'price_change']
+dummy_data = {
+    'price': [100.0, 102.5, 101.5, 102.2],
+    'momentum': [1.1, 1.2, 1.0, 1.1],
+    'volume': [5000, 5500, 5200, 5100],
+    'price_change': [0.02, 0.03, 0.01, 0.02],
+    'outcome': [1, 0, 1, 0]
+}
+starting_data = pd.DataFrame(dummy_data)
+# Initialize data for training
+training_data = pd.DataFrame(columns=FEATURES + ['outcome'])  # Store features and outcomes for model training
+training_data = pd.concat([training_data, starting_data])
+
+# Initialize machine learning model (Random Forest Regressor)
+model = RandomForestRegressor(n_estimators=100)
+
+from alpaca.data.requests import StockBarsRequest
+from datetime import datetime
+
+
+def get_stock_data(symbol, timeframe=TimeFrame.Day, limit=100):
+    """Fetch historical stock data for a given symbol using Alpaca-py."""
+    request_params = StockBarsRequest(
+        symbol_or_symbols=symbol,
+        timeframe=timeframe,
+        start=datetime(2023, 1, 1),  # Modify to use a proper start date if needed
+        end=datetime(2023, 3, 1),
+        limit=limit
+    )
+
+    bars = data_client.get_stock_bars(request_params)
+
+    data = pd.DataFrame({
+        'time': [bar.timestamp for bar in bars[symbol]],
+        'close': [bar.close for bar in bars[symbol]],
+        'open': [bar.open for bar in bars[symbol]],
+        'high': [bar.high for bar in bars[symbol]],
+        'low': [bar.low for bar in bars[symbol]],
+        'volume': [bar.volume for bar in bars[symbol]]
+    }).set_index('time')
+
+    return data
+
+
+def generate_signals(data):
+    """Generate buy/sell signals with trend analysis."""
+    signals = pd.DataFrame(index=data.index)
+    signals['price'] = data['close']
+
+    # Calculate percentage change and momentum over 3 intervals
+    signals['price_change'] = data['close'].pct_change(3) * 100
+    signals['momentum'] = data['close'].diff(3)  # Momentum: price difference over 3 intervals
+    signals['volume'] = data['volume']
+
+    # Generate buy signals if price change exceeds threshold
+    signals['buy_signal'] = np.where(
+        (signals['price_change'] > PERCENTAGE_THRESHOLD) & (signals['momentum'] > MOMENTUM_THRESHOLD), 1.0, 0.0
+    )
+
+    # Generate sell signals if price is falling or stop-loss is triggered
+    signals['sell_signal'] = np.where(
+        (signals['price_change'] < -PERCENTAGE_THRESHOLD) & (signals['momentum'] < -MOMENTUM_THRESHOLD), -1.0, 0.0
+    )
+
+    # Aggregate the positions (buy=1, sell=-1)
+    signals['positions'] = signals['buy_signal'] - signals['sell_signal']
+
+    # Debug: Print signals
+    print(signals[['price', 'price_change', 'momentum', 'buy_signal', 'sell_signal', 'positions']].tail(10))
+
+    return signals
+
+
+def execute_trade(symbol, buy=False, sell=False, qty=1):
+    """Executes a buy or sell order for a stock using Alpaca-py."""
+    if buy:
+        order = MarketOrderRequest(
+            symbol=symbol,
+            qty=qty,
+            side=OrderSide.BUY,
+            time_in_force=TimeInForce.GTC
+        )
+        trading_client.submit_order(order)
+        print(f"Buying {qty} shares of {symbol}.")
+    elif sell:
+        order = MarketOrderRequest(
+            symbol=symbol,
+            qty=qty,
+            side=OrderSide.SELL,
+            time_in_force=TimeInForce.GTC
+        )
+        trading_client.submit_order(order)
+        print(f"Selling {qty} shares of {symbol}.")
+
+
+def collect_training_data(price, momentum, volume, price_change, outcome):
+    """Collect data for training the model after each trade."""
+    global training_data
+    new_data = pd.DataFrame([[price, momentum, volume, price_change, outcome]], columns=FEATURES + ['outcome'])
+    training_data = pd.concat([training_data, new_data])
+
+
+def retrain_model():
+    """Retrain the model with new data."""
+    global model
+    if len(training_data) >= TRAINING_INTERVAL:
+        X = training_data[FEATURES]
+        y = training_data['outcome']
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+        model.fit(X_train, y_train)
+        y_pred = model.predict(X_test)
+        mse = mean_squared_error(y_test, y_pred)
+        print(f"Model MSE: {mse:.2f}")
+
+
+def predict_trade_outcome(price, momentum, volume, price_change):
+    """Predict whether a trade will be profitable using the trained regressor model."""
+    feature_vector = np.array([[price, momentum, volume, price_change]])
+    predicted_profit = model.predict(feature_vector)[0]
+    return predicted_profit
+
+
+def scalping_strategy():
+    """Main strategy with execution logic for low-cost stocks."""
+    balance = INITIAL_BALANCE
+    portfolio = {}
+
+    for symbol in low_cost_stocks:
+        # Retrieve stock data for each stock
+        stock_data = get_stock_data(symbol)
+
+        # Generate buy/sell signals
+        signals = generate_signals(stock_data)
+
+        # Track if we own the stock
+        position = False
+
+        for i in range(len(signals)):
+            price = signals['price'].iloc[i]
+            momentum = signals['momentum'].iloc[i]
+            volume = signals['volume'].iloc[i]
+            price_change = signals['price_change'].iloc[i]
+
+            # Buy condition
+            if signals['positions'].iloc[i] == 1.0 and price <= MAX_STOCK_PRICE and balance >= price:
+                predicted_outcome = predict_trade_outcome(price, momentum, volume, price_change)
+
+                if predicted_outcome > 0:  # Model predicts profit
+                    execute_trade(symbol, buy=True)
+                    portfolio[symbol] = price
+                    balance -= price
+                    position = True
+                print('Did something! ')
+
+            # Sell condition
+            elif position and (
+                    signals['positions'].iloc[i] == -1.0 or price <= portfolio[symbol] * (1 - STOP_LOSS_PERCENT / 100)):
+                predicted_outcome = predict_trade_outcome(price, momentum, volume, price_change)
+
+                if predicted_outcome > 0:  # Model predicts profit
+                    execute_trade(symbol, sell=True)
+                    balance += price
+                    position = False
+                print('Did something!')
+            print('might not of done anything')
+            # After each trade, collect the features and actual outcome
+            actual_outcome = 1 if balance > INITIAL_BALANCE else 0
+            collect_training_data(price, momentum, volume, price_change, actual_outcome)
+
+            # Retrain the model after collecting enough data
+            retrain_model()
+
+        # Print portfolio and balance status
+        print(f"Portfolio: {portfolio}")
+        print(f"Balance: {balance}")
+
+# initialize model
+retrain_model()
+# Running the strategy
+scalping_strategy()
+
+```
+
+This was a pivotal learning stage. Frequent model updates had a **computational cost**, but they helped me see that if novices want consistent returns, the system needs to evolve alongside the market.
+
+---
+
+## Version 4: Real-Time AI Trading for Everyone
+
+Finally, Version 4 was my “all-in” approach to building a user-friendly, end-to-end solution. I wanted it to feel like a personal AI investing assistant:
+
+- **Real-time Trading:** Hooked directly into Alpaca to place market orders in response to signals
+- **Scheduling:** Automated market open/close routines to mimic real broker behavior
+- **Model Persistence:** Used `joblib` to save model states, so it wouldn’t start from scratch each session
+- **Backtesting & Live Mode:** Provided both simulation data analysis and immediate real trades
+
+
+# Full Version 4 code
+```python
+import numpy as np
+import pandas as pd
+from alpaca.data import StockBarsRequest
+from alpaca.data.historical import StockHistoricalDataClient
+from alpaca.trading.client import TradingClient
+from alpaca.trading.enums import OrderSide, TimeInForce
+from alpaca.trading.requests import MarketOrderRequest
+from alpaca.data.timeframe import TimeFrame
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+import joblib
+import schedule
+import time
+from datetime import datetime
+
+# Alpaca API credentials
+API_KEY = ''
+API_SECRET = ''
+
+# Initialize Alpaca clients
+trading_client = TradingClient(API_KEY, API_SECRET, paper=True)
+data_client = StockHistoricalDataClient(API_KEY, API_SECRET)
+
+# File to save model progress
+MODEL_FILE = 'trading_model.pkl'
+
+
+# Machine learning model for stock prediction
+def initialize_model():
+    try:
+        model = joblib.load(MODEL_FILE)
+        print("Loaded saved model.")
+    except:
+        model = RandomForestClassifier(n_estimators=100)
+        print("Initialized new model.")
+    return model
+
+
+model = initialize_model()
+
+# Define stock list (stocks priced under $10)
+low_cost_stocks = ['AAPL', 'AMD', 'GEVO', 'NIO']
+
+
+# Function to fetch historical stock data using Alpaca-py
+def get_stock_data(symbol, limit=100):
+    request_params = StockBarsRequest(
+        symbol_or_symbols=symbol,
+        timeframe=TimeFrame.Minute,
+        limit=limit
+    )
+    bars = data_client.get_stock_bars(request_params)
+    data = pd.DataFrame({
+        'time': [bar.timestamp for bar in bars[symbol]],
+        'close': [bar.close for bar in bars[symbol]],
+        'open': [bar.open for bar in bars[symbol]],
+        'high': [bar.high for bar in bars[symbol]],
+        'low': [bar.low for bar in bars[symbol]],
+        'volume': [bar.volume for bar in bars[symbol]]
+    }).set_index('time')
+    return data
+
+
+# Features for machine learning model (technical indicators)
+def calculate_indicators(data):
+    data['SMA_10'] = data['close'].rolling(window=10).mean()  # 10-period moving average
+    data['Momentum'] = data['close'].diff(3)  # Momentum over 3 periods
+    data['Volume_change'] = data['volume'].pct_change()  # Volume percentage change
+    data = data.dropna()
+    return data
+
+
+# Generate buy/sell signals using the ML model
+def generate_signals(data, model):
+    features = ['SMA_10', 'Momentum', 'Volume_change']
+    X = data[features]
+    signals = model.predict(X)
+    data['signals'] = signals
+    return data
+
+
+# Function for executing trades
+def execute_trade(symbol, action, qty=1):
+    side = OrderSide.BUY if action == 'buy' else OrderSide.SELL
+    order = MarketOrderRequest(
+        symbol=symbol,
+        qty=qty,
+        side=side,
+        time_in_force=TimeInForce.GTC
+    )
+    trading_client.submit_order(order)
+    print(f"{action.capitalize()}ing {qty} shares of {symbol}.")
+
+
+# Simulated trade function for backtesting
+def simulate_trade(portfolio, symbol, action, price):
+    if action == 'buy':
+        portfolio[symbol] = portfolio.get(symbol, 0) + 1  # Simulate buying 1 share
+        print(f"Simulating buy of {symbol} at {price}")
+    elif action == 'sell' and symbol in portfolio:
+        portfolio[symbol] -= 1  # Simulate selling 1 share
+        print(f"Simulating sell of {symbol} at {price}")
+        if portfolio[symbol] == 0:
+            del portfolio[symbol]
+
+
+# Function to get historical data for backtesting
+def get_historical_data(symbol, start_date, end_date, timeframe=TimeFrame.Day):
+    request_params = StockBarsRequest(
+        symbol_or_symbols=symbol,
+        timeframe=timeframe,
+        start=start_date,
+        end=end_date
+    )
+    bars = data_client.get_stock_bars(request_params)
+
+    data = pd.DataFrame({
+        'time': [bar.timestamp for bar in bars[symbol]],
+        'close': [bar.close for bar in bars[symbol]],
+        'open': [bar.open for bar in bars[symbol]],
+        'high': [bar.high for bar in bars[symbol]],
+        'low': [bar.low for bar in bars[symbol]],
+        'volume': [bar.volume for bar in bars[symbol]]
+    }).set_index('time')
+
+    return data
+
+
+# Function to backtest the trading strategy
+def backtest_strategy(start_date, end_date, initial_balance=10000):
+    balance = initial_balance
+    portfolio = {}
+    total_value = balance
+    trades = []
+
+    for symbol in low_cost_stocks:
+        stock_data = get_historical_data(symbol, start_date, end_date)
+        stock_data = calculate_indicators(stock_data)
+        stock_data = generate_signals(stock_data, model)
+
+        for i, row in stock_data.iterrows():
+            current_price = row['close']
+
+            # Simulated Buy Signal
+            if row['signals'] == 1 and balance >= current_price:
+                simulate_trade(portfolio, symbol, 'buy', current_price)
+                balance -= current_price
+                trades.append((i, symbol, 'buy', current_price))
+
+            # Simulated Sell Signal
+            elif row['signals'] == -1 and symbol in portfolio and portfolio[symbol] > 0:
+                simulate_trade(portfolio, symbol, 'sell', current_price)
+                balance += current_price
+                trades.append((i, symbol, 'sell', current_price))
+
+            # Calculate the total portfolio value
+            total_value = balance + sum([stock_data.loc[i]['close'] * qty for symbol, qty in portfolio.items()])
+
+    # Calculate performance metrics at the end of backtesting
+    total_profit = total_value - initial_balance
+    print(f"Total Profit: {total_profit}")
+    print(f"Final Portfolio: {portfolio}")
+    print(f"Final Balance: {balance}")
+
+    return trades, total_profit
+
+
+# Market open/close handlers for live trading
+def market_open():
+    print("Market opened, starting trading strategy...")
+    trading_strategy()
+
+
+def market_close():
+    print("Market closed, stopping trading.")
+    retrain_model()
+
+
+# Schedule market open/close events
+schedule.every().day.at("09:30").do(market_open)  # U.S. market open time
+schedule.every().day.at("16:00").do(market_close)  # U.S. market close time
+
+
+# Function to handle live trading (for when the market is open)
+def trading_strategy():
+    balance = 10  # Starting balance
+    portfolio = {}
+
+    for symbol in low_cost_stocks:
+        stock_data = get_stock_data(symbol)
+        stock_data = calculate_indicators(stock_data)
+        stock_data = generate_signals(stock_data, model)
+
+        for i, row in stock_data.iterrows():
+            if row['signals'] == 1 and balance > row['close']:  # Buy signal
+                execute_trade(symbol, 'buy')
+                portfolio[symbol] = row['close']
+                balance -= row['close']
+            elif row['signals'] == -1 and symbol in portfolio:  # Sell signal
+                execute_trade(symbol, 'sell')
+                balance += row['close']
+                del portfolio[symbol]
+
+    print(f"Portfolio: {portfolio}")
+    print(f"Balance: {balance}")
+
+
+# Retraining the machine learning model
+def retrain_model():
+    features = ['SMA_10', 'Momentum', 'Volume_change']
+    data = pd.concat([get_stock_data(symbol) for symbol in low_cost_stocks])
+    data = calculate_indicators(data)
+    X = data[features]
+    y = data['signals']
+
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+    model.fit(X_train, y_train)
+    y_pred = model.predict(X_test)
+    accuracy = accuracy_score(y_test, y_pred)
+    print(f"Model accuracy: {accuracy:.2f}")
+
+    joblib.dump(model, MODEL_FILE)
+
+
+# Backtesting example usage
+start_date = datetime(2023, 1, 1)
+end_date = datetime(2023, 12, 31)
+
+trades, profit = backtest_strategy(start_date, end_date)
+
+```
+
+By this stage, the tool looked more like a minimal “AI investing broker,” letting me (and eventually others) approach the stock market with an evolving strategy. For novices, the real value is how the system hunts for good moments to buy or sell without requiring manual chart scrutiny.
+
+---
+
+## Reflecting on the Journey
+
+- **Human-Centered Design:** My initial impetus was to make investing less intimidating. Each iteration stayed user-focused: little to no jargon, automated processes, and transparent signals.
+- **Machine Learning Progression:** Starting with simple rules and layering on random forests, I realized the importance of continuous retraining and diverse features (like momentum, price changes, and technical indicators).
+- **Data Pipeline:** Quality data — both historic and real-time — remains the backbone of an effective AI broker.
+- **Balancing Complexity and Accessibility:** Heavy ML can confuse or intimidate novices. So I kept the interface simple while ensuring the backend was robust.
+
+---
+
+## Tools & Next Steps
+
+- **Core Libraries:** NumPy, pandas, Matplotlib for data manipulation and visualization.
+- **ML Stack:** scikit-learn (Random Forest), plus `joblib` for saving/loading models.
+- **API:** Alpaca for real-time trading, schedule for timed tasks.
+
+I’m now looking to **extend coverage** beyond typical stocks, potentially into crypto or forex, so that first-time investors have a single hub. Another area is **deep learning**, perhaps with LSTMs or Transformers, to capture more complex temporal patterns. Lastly, building a user-friendly **web or mobile interface** is on my roadmap to ensure absolute beginners can monitor performance with a glance — or not at all if they choose full automation!
+
+---
+
+## Conclusion
+
+From a simple moving average script to a real-time trading system powered by machine learning, my journey taught me that building a novice-friendly AI investing broker is as much about empathetic design as it is about technical innovation. Whether it’s automating buy/sell decisions or continuously refining a predictive model, each version brought me closer to a seamless, approachable investing experience.
+
+My hope is that one day, someone who’s never traded a stock can install this tool, link their broker account, and watch an AI agent manage their portfolio responsibly — opening the door to wealth-building opportunities without the usual intimidation or complexity. Here’s to making investing more accessible, one iteration at a time!

@@ -1,0 +1,348 @@
+import { ArticleLayout } from '@/components/ArticleLayout'
+
+export const article = {
+  author: 'Robert Neyrinck',
+  date: '2024-11-26',
+  title: 'Building a Fintech Allowance App Backend with Django & DRF',
+  description:
+    'A secure, RESTful API that calculates daily allowances, tracks income and expenses, and helps users manage their finances more effectively — all built with Django, Django REST Framework, and a passion for simplifying personal finance.',
+}
+
+export const metadata = {
+  title: article.title,
+  description: article.description,
+}
+
+export default (props) => <ArticleLayout article={article} {...props} />
+
+## Introduction
+
+The **Fintech Allowance App Backend** is my latest foray into creating a practical, real-world financial tool using Django and Django REST Framework (DRF). Inspired by the challenges many people face in controlling daily spending, I wanted to build a platform that calculates a user’s *daily allowance* based on their income, expenses, and savings goals.
+
+This backend demonstrates my dedication to robust API design, from crafting detailed data models and secure authentication workflows to documenting every endpoint for seamless integration. Along the way, I’ve integrated testing, security best practices, and thoughtful design patterns that can scale as user needs grow.
+
+---
+
+## Features
+
+### User Authentication and Management
+- Secure user registration and login, leveraging **JWT** for authentication.
+- Password reset and change functionalities, ensuring smooth user account management.
+
+### Income Management
+- Create, read, update, and delete income entries.
+- Support for different income frequencies (weekly, bi-weekly, monthly).
+
+### Expense Management
+- Manage recurring expenses with full CRUD operations.
+- Multiple frequency options to handle everything from monthly bills to annual subscriptions.
+
+### Savings Goal Setting
+- Easily set savings goals as a percentage of total income.
+- Automatically accounts for these goals when computing daily allowance.
+
+### Daily Allowance Calculation
+- Dynamic calculation of daily allowance, updating whenever user income or expenses change.
+- Offers an at-a-glance figure for how much users can afford to spend daily.
+
+### Transaction Logging
+- Keep track of all daily transactions in real time.
+- Reflect transaction activity in users’ remaining allowance.
+
+### Security and Permissions
+- **JWT authentication** secures every endpoint.
+- Users can only view or modify their own data.
+
+### API Documentation
+- Interactive API documentation generated via **Swagger UI** for effortless backend-to-frontend handoff.
+
+---
+
+## Technologies Used
+
+- **Python 3.9+**: Reliable and versatile language choice for backend services.
+- **Django 3.x** & **Django REST Framework**: Powerhouse combo for building secure, scalable REST APIs.
+- **Djoser** & **Simple JWT**: Streamlined user management and token-based authentication.
+- **PostgreSQL**: Robust relational database for storing all financial data.
+- **drf-yasg**: Generates fully interactive Swagger UI docs.
+- **Docker** (optional): Containerization for easy deployment and scaling.
+- **Virtualenv**: Local environment isolation to keep dependencies tidy.
+
+### Current Progress
+
+- **Completed:**
+  - Core Models: `Income`, `Expense`, `SavingsGoal`, `Transaction`, `DailyAllowance`.
+  - CRUD APIs for all models, fully secured by JWT.
+  - Business logic for calculating and updating daily allowance.
+  - Over 90% test coverage, tackling everything from user registration to edge cases in financial logic.
+  - Swagger UI-based documentation for simplified endpoint discovery and usage.
+- **Testing:**
+  - Integration, unit, and permission tests verify data consistency and security.
+  - Validation error handling and coverage for complex scenarios.
+
+### Pending Tasks
+
+- **Frontend Integration:**
+  Coordinate with or build a frontend (possibly a mobile app) to leverage the API.
+- **Deployment:**
+  Production environment hardening, environment variable management, and Dockerization.
+- **Performance Optimization:**
+  Adding indexes, optimizing queries, and monitoring performance metrics.
+- **Additional Features:**
+  Password reset via email, optional multi-currency support, and user notifications for spending thresholds.
+- **Documentation:**
+  Further expansion of Swagger examples, plus developer-oriented documentation for easy onboarding.
+- **Security Audit:**
+  Rate limiting, in-depth penetration testing, and potential 2FA or other advanced security measures.
+
+---
+
+## Overview
+
+I embarked on the **Fintech Allowance App Backend** as a personal project to sharpen my backend engineering skills and dive deeper into real-world financial logic. The project’s central concept is straightforward: give users a daily spending budget so they can stay on track with larger financial goals. By factoring in income frequency, recurring expenses, and custom savings percentages, the system quickly shows how seemingly small financial decisions can make or break a budget.
+
+In building this, I balanced functionality with security. Each API endpoint requires token-based authentication, ensuring only the appropriate user can access or manipulate their data. Testing was a high priority — every feature is backed by test cases to catch regressions early and maintain quality over time.
+
+---
+
+## Project Goals
+
+1. **Secure & Scalable REST API**
+   Architect a robust framework for financial data, ensuring the system can scale as more users or features are added.
+
+2. **Core Financial Functionalities**
+   Provide reliable CRUD operations for income/expenses, manage savings goals as percentages, and constantly update daily allowance calculations.
+
+3. **Data Security & Integrity**
+   Use JWT-based authentication and model-level permissions to ensure users only see or edit data that belongs to them.
+
+4. **Comprehensive Testing**
+   Maintain reliability through consistent, automated test coverage to reduce bugs and enforce best practices.
+
+5. **Easy Integration**
+   Provide well-documented, Swagger-generated endpoints so any frontend (mobile or web) can be plugged in quickly.
+
+---
+
+## What I've Done So Far
+
+### 1. **Set Up the Project Structure**
+
+```bash
+django-admin startproject fintech_app
+cd fintech_app
+python manage.py startapp core
+```
+
+A typical Django structure with a dedicated core app for models, views, and business logic.
+
+### 2. Implemented User Authentication
+```python
+# settings.py
+INSTALLED_APPS = [
+    # ...
+    'rest_framework',
+    'djoser',
+    'rest_framework_simplejwt',
+    'core',
+]
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    ),
+}
+
+# urls.py
+urlpatterns = [
+    # ...
+    path('api/auth/', include('djoser.urls')),
+    path('api/auth/', include('djoser.urls.jwt')),
+]
+```
+
+I chose Djoser to streamline user account tasks (e.g., registration, password management), and Simple JWT for secure token-based sessions.
+
+### 3. Created Core Models
+```python
+# core/models.py
+
+class Income(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    frequency = models.CharField(max_length=20)
+    next_payment_date = models.DateField()
+
+class Expense(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    name = models.CharField(max_length=100)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    frequency = models.CharField(max_length=20)
+    due_date = models.DateField()
+
+class SavingsGoal(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    percentage = models.DecimalField(max_digits=5, decimal_places=2)
+
+class DailyAllowance(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    date = models.DateField()
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    remaining_amount = models.DecimalField(max_digits=10, decimal_places=2)
+
+class Transaction(models.Model):
+    allowance = models.ForeignKey(DailyAllowance, on_delete=models.CASCADE)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    category = models.CharField(max_length=50)
+    description = models.TextField()
+
+```
+These entities capture every critical slice of user finance, from recurring incomes and expenses to daily transactions.
+
+### 4. Developed API Endpoints
+```python
+# core/views.py
+class IncomeViewSet(viewsets.ModelViewSet):
+    serializer_class = IncomeSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Income.objects.filter(user=self.request.user)
+
+# core/urls.py
+router = DefaultRouter()
+router.register(r'income', IncomeViewSet, basename='income')
+# Similar routers for Expense, SavingsGoal, Transaction...
+
+urlpatterns = [
+    path('', include(router.urls)),
+]
+
+```
+Using DRF’s viewsets and routers, I established a standard CRUD pattern. Permissions ensure that only the current user’s data is visible.
+
+### 5. Implemented Business Logic
+```python
+# core/utils.py
+def calculate_daily_allowance(user):
+    total_income = sum(i.amount for i in Income.objects.filter(user=user))
+    total_expenses = sum(e.amount for e in Expense.objects.filter(user=user))
+    savings_goal = SavingsGoal.objects.filter(user=user).first()
+    savings = (savings_goal.percentage / 100) * total_income if savings_goal else 0
+
+    disposable_income = total_income - total_expenses - savings
+    next_income_date = Income.objects.filter(user=user).aggregate(Min('next_payment_date'))['next_payment_date__min']
+    days_until_next_income = (next_income_date - date.today()).days if next_income_date else 30
+
+    daily_amount = disposable_income / days_until_next_income if days_until_next_income > 0 else 0
+    allowance, created = DailyAllowance.objects.get_or_create(
+        user=user, date=date.today(),
+        defaults={'amount': daily_amount, 'remaining_amount': daily_amount}
+    )
+
+    if not created:
+        allowance.amount = daily_amount
+        allowance.remaining_amount = daily_amount
+        allowance.save()
+
+    return allowance
+
+```
+After each new or updated income/expense record, a utility function recalculates how much a user can spend per day.
+
+### 6. Wrote Comprehensive Tests
+```python
+# core/tests/test_views.py
+class IncomeAPITest(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='testuser', password='StrongPassword123!')
+        self.client.force_authenticate(user=self.user)
+        self.income_url = reverse('income-list')
+
+    def test_create_income_valid(self):
+        data = {
+            'amount': 5000.00,
+            'frequency': 'monthly',
+            'next_payment_date': '2024-12-01'
+        }
+        response = self.client.post(self.income_url, data, format='json')
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(Income.objects.count(), 1)
+        self.assertEqual(Income.objects.get().amount, 5000.00)
+```
+Covering creation, edge cases (like negative amounts), and permission scenarios to confirm only the owner sees their data.
+
+### 7. Generated API Documentation
+```python
+# fintech_app/urls.py
+from drf_yasg.views import get_schema_view
+from drf_yasg import openapi
+
+schema_view = get_schema_view(
+   openapi.Info(
+      title="Fintech Allowance API",
+      default_version='v1',
+      description="API documentation for the Fintech Allowance App",
+   ),
+   public=True,
+   permission_classes=(permissions.AllowAny,),
+)
+
+urlpatterns += [
+   path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
+]
+
+```
+drf-yasg automatically populates route definitions for a clean Swagger UI experience.
+
+### 8. **Ensured Security and Permissions**
+
+- **Enforced `IsAuthenticated`** for all views, ensuring only authenticated requests can access protected endpoints.
+- Incorporated **custom checks** so that one user cannot alter or view another user’s financial data.
+- Rigorously **tested input validation** for negative or otherwise invalid financial entries to uphold data integrity.
+
+---
+
+## Thought Process
+
+I chose **Django** for its reliable ecosystem and paired it with **Django REST Framework** for crafting RESTful APIs. **Djoser** simplified user account workflows, while **Simple JWT** bolstered security with token-based authentication. Throughout development, I emphasized a clean data model, wrote tests in a TDD-style where feasible, and consistently aimed for high coverage to maintain a stable codebase.
+
+Given this app involves personal finance, **security and privacy** were paramount. I ensured user data was isolated via foreign keys, thoroughly tested permission logic, and was careful not to return sensitive fields in serializers.
+
+---
+
+## Plans for the Future
+
+### 1. **Frontend Development**
+- **React Native**: Build a cross-platform mobile client for both iOS and Android.
+- **Integration Testing**: Validate seamless communication between the backend and the frontend.
+
+### 2. **Deployment**
+- **Containerization**: Use Docker for easy scaling and consistent environments.
+- **Cloud Hosting**: Deploy on AWS, Heroku, or similar platforms, with secure environment variable management.
+
+### 3. **Additional Features**
+- **Email Notifications**: Alert users when they’re nearing or exceeding their daily allowance.
+- **Budget Analysis**: Provide monthly breakdowns and trend analyses to help users understand spending habits.
+- **Multi-Currency Support**: Make the app accessible to a global audience by handling various currencies.
+- **Localization**: Offer multiple language options for broader accessibility.
+
+### 4. **Performance Optimization**
+- **Caching**: Use Redis (or a similar tool) to cache frequent queries.
+- **Async Tasks**: Integrate Celery for heavier processes like sending weekly summary emails.
+
+### 5. **Enhanced Security**
+- **Rate Limiting**: Guard against brute-force attacks by limiting login attempts.
+- **2FA**: Offer optional two-factor authentication for accounts with sensitive financial data.
+- **Audit Logging**: Maintain logs of key user actions for accountability and auditing.
+
+---
+
+## Conclusion
+
+Developing the **Fintech Allowance App Backend** has been both **challenging** and **rewarding**. It goes beyond coding endpoints — it involves translating intricate financial logic into a helpful tool that empowers people to control their daily spending. By combining robust authentication, a thoughtful data model, and thorough testing, I’ve created a solid foundation for a trustworthy financial service.
+
+As the project evolves, I’m excited to integrate an intuitive mobile interface, add features like analytics and notifications, and extend its reach globally. For anyone interested in collaborating or exploring this project further, reach out for access and stay tuned — this is just the beginning!

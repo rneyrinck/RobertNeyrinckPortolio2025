@@ -1,0 +1,173 @@
+import { ArticleLayout } from '@/components/ArticleLayout'
+import candidateInfoForm from './candidate-information-form.png'
+import coverLetterPreview from './cover-letter-preview.png'
+import instructionsForUse from './instructions-for-use.png'
+import mainDashboard from './main-dashboard.png'
+import recurringSkills from './recurring-skills.png'
+import resumePastForm from './resume-past-form.png'
+import resumePreview from './resume-preview.png'
+import rightHandDashboard from './righthand-dashboard.png'
+
+
+export const article = {
+  author: 'Robert Neyrinck',
+  date: '2024-11-12',
+  title: 'Introducing the Job Seeker Tool: Automating Your Application Workflow',
+  description:
+    'Tired of juggling countless job applications? Dive into how I built a Python-based desktop tool that not only automates tailored resume/cover letter generation but also tracks every step of the job search process — all from a single dashboard.',
+}
+
+export const metadata = {
+  title: article.title,
+  description: article.description,
+}
+
+export default (props) => <ArticleLayout article={article} {...props} />
+
+I’ve always believed that applying to jobs should be less about repetitive busy work and more about showcasing what truly matters: our skills and passion. That’s why I built the **Job Seeker Tool**, a Python-based application that centralizes and automates many of the mundane tasks involved in applying for jobs. I wanted to not only streamline my own process but also inspire others to maximize their time spent on the human aspects of job searching — like interviews and networking — rather than manually updating resumes for every listing they find.
+
+## The Vision
+
+I started this project with a simple question: *What if I could handle all my applications in one place and tailor each resume/cover letter with minimal manual effort?* That question propelled me into designing a **PyQt5**-powered dashboard to organize my applications, a set of NLP pipelines to analyze job listings, and a robust Word document generation flow to produce custom resumes and cover letters on the fly.
+
+From the beginning, my goal was to build something that felt equal parts professional productivity tool and personal career coach. The project gave me an opportunity to flex my engineering skills — from a super simple front-end UI design to back-end automations that have plenty of room to scale — and simultaneously exercise my entrepreneurial mindset by tackling a real pain point in job hunting.
+
+---
+
+## Screenshots
+
+Below are a few snapshots illustrating how the tool works and what the user interface looks like:
+
+### Instructions for use
+
+<Image
+  src={instructionsForUse}
+  alt="Instructions for use"
+/>
+
+### Single form to hold recurring candidate information:
+
+<Image
+  src={candidateInfoForm}
+  alt="Candidate information form"
+/>
+
+### CSV form for recurring candidate skills
+
+<Image
+  src={recurringSkills}
+  alt="Recurring candidate skills"
+/>
+
+### User pastes in their current resume in this form
+
+<Image
+  src={resumePastForm}
+  alt="Resume paste form"
+/>
+
+### Main dashboard for application
+
+<Image
+  src={mainDashboard}
+  alt="Main dashboard"
+/>
+
+### Right-hand of dashboard
+
+When a user selects a job on the left, the right-hand side populates with tailored resume/cover-letter snippets, user info, and application status tools:
+
+<Image
+  src={rightHandDashboard}
+  alt="Right-hand dashboard details"
+/>
+
+### Generated resume preview
+
+<Image
+  src={resumePreview}
+  alt="Resume preview"
+/>
+
+### Cover letter preview
+
+<Image
+  src={coverLetterPreview}
+  alt="Cover letter preview"
+/>
+
+---
+
+## Full Application Code
+
+Below is a link to the github repo containing the complete Python code for the application. It uses **PyQt5** for the UI, **spaCy** and **BeautifulSoup** for NLP-driven skill extraction and text cleaning, and **python-docx** for generating Word documents. The tool also integrates with **Careerjet** to fetch job postings, providing a streamlined pipeline from job search to tailored resume creation.
+
+For a deep-dive into the source code, you can visit the project repository on [GitHub](https://github.com/rneyrinck/jobScraper2000).
+
+## Key Features
+
+### 1. Application Management
+- **Dashboard Interface:** A single-pane view of all job applications, sortable by company, job title, or status.
+- **Status Tracking:** Quickly log where you are in the hiring process (Not Applied, Applied, Interview, Offer, and more) to keep your job hunt organized.
+
+### 2. Resume and Cover Letter Customization
+- **Tailored Documents:** Leveraging spaCy for keyword extraction, the app dynamically injects relevant skills into a customized resume and cover letter.
+- **User-Defined Templates:** Upload your base `.docx` resume and update it on-the-fly. The tool merges both user data and job-specific keywords into these templates.
+
+### 3. Job Search Integration
+- **Careerjet API Integration:** Pull multiple pages of job listings with flexible parameters (location, keywords, page range, etc.).
+- **Data Cleaning & Parsing:** Clean job descriptions with BeautifulSoup to remove HTML tags. Then let spaCy find relevant skills or keywords to highlight in your application.
+
+### 4. Applicant Profile Management
+- **Centralized User Info:** Store your name, address, social profiles, education, and core skill set in a single config file for reuse.
+- **Enriched Skills:** Combine your “base” skills with job-specific mentions to ensure your resume is always on-target.
+
+### 5. Document & File Management
+- **Drag-and-Drop Resumes:** Quickly drop your tailored resume into any external job application portal.
+- **Preview Before Submission:** Generate `.docx` files in a designated folder and preview them right from the app.
+
+### 6. Automated Application Workflow
+- **Bulk Application Generation:** Run a search, automatically build tailored resumes/cover letters, and populate the dashboard with new job entries — all at once.
+- **Progress Tracking:** Each new application defaults to “Not Applied,” prompting you to move it along the pipeline as you go.
+
+### 7. User Experience and Support
+- **Intuitive UI:** The PyQt5 interface makes it feel more like a desktop application than a command-line script, appealing to both developers and non-tech users.
+- **Guided Onboarding:** Toast notifications and an “Instructions Dialog” reduce confusion and help new users hit the ground running.
+
+---
+
+## Technical Highlights
+
+### 1. Libraries & Frameworks
+- **PyQt5** for a responsive GUI
+- **spaCy** for natural language processing
+- **BeautifulSoup** for HTML parsing
+- **pandas** for data handling and CSV workflows
+- **python-docx** for creating polished Word documents programmatically
+
+### 2. Data Management
+- **Persistent Storage:** A local `Applications.csv` logs your application pipeline, while a JSON config file retains your personal settings and skill lists.
+- **Live Sorting & Filtering:** Update status or sort by columns in real time, with changes written back to CSV automatically.
+
+### 3. Automation Pipeline
+1. **Job Search:** Fetch listings from the Careerjet API.
+2. **Data Cleaning:** Strip HTML and parse out relevant skill tokens.
+3. **Document Generation:** Update resume templates and create matching cover letters with precision.
+4. **Status Tracking:** Keep tabs on every stage of your applications, from “Not Applied” to “Offer Received.”
+
+---
+
+## Future Enhancements
+- **Support for Additional Job Boards** (e.g., LinkedIn, Indeed, Glassdoor)
+- **Cloud Sync** to manage your applications from multiple devices
+- **Advanced Analytics** to measure success rates and track trends in job listings or response times
+- **AI-powered Matching** for deeper personalization of job recommendations
+
+---
+
+## Conclusion
+
+Working on the **Job Seeker Tool** has been a rewarding journey in systems design, user experience, and NLP-driven automation. It started as a personal challenge to reduce the tedium of job hunting, but it ended up becoming a holistic platform that empowers users to present themselves in the best possible light. If you’re looking for a more strategic, data-driven approach to finding (and landing) your next role, I hope this project inspires you to streamline your own processes — or even contribute new features!
+
+[View the full project on GitHub](https://github.com/rneyrinck/jobScraper2000) and feel free to share any feedback or improvements. Together, we can make job hunting a little less stressful and a lot more efficient.
+

@@ -1,0 +1,205 @@
+import { ArticleLayout } from '@/components/ArticleLayout'
+
+export const article = {
+  author: 'Robert Neyrinck',
+  date: '2024-10-29',
+  title: 'Building a TypeScript Task Manager with MongoDB, Redis, and Cloud Deployment',
+  description:
+    'A step-by-step journey of creating a full-stack task management system with TypeScript, MongoDB, Redis, and modern front-end tools, all deployed to the cloud.',
+}
+
+export const metadata = {
+  title: article.title,
+  description: article.description,
+}
+
+export default (props) => <ArticleLayout article={article} {...props} />
+
+## Introduction
+
+I set out to **refresh my familiarity with a range of technologies** outside my usual comfort zone. The resulting project is a **Task Manager Application** that integrates:
+
+- **TypeScript** (for both front-end and back-end),
+- **MongoDB** (for persistent data storage),
+- **Redis** (for caching and real-time updates),
+- **Cloud Platforms** (Azure or Google Cloud),
+- **Front-End development** (React, Tailwind, Catalyst UI kit),
+- **Automated Testing** (Jest, Supertest), and
+- **CI/CD** pipelines for automated deployment.
+
+This article consolidates my approach, design decisions, and the lessons learned along the way.
+
+---
+
+## High-Level Overview
+
+The **Task Manager** lets users register, log in (JWT auth), and perform typical project-management tasks:
+
+1. **Create, Update, Delete Tasks**
+2. **Prioritize tasks** and set due dates
+3. **Real-Time Notifications** with Redis Pub/Sub (e.g., collaborator changes)
+4. **Search and Filter** tasks
+5. **Caching** to handle large volumes of data efficiently
+6. **Cloud Deployment** with a CI/CD pipeline
+
+---
+
+## Project Scope and Technologies
+
+### 1. TypeScript
+- **Front-End**: React + TypeScript for type-safe UI components; Context API or Redux for state management.
+- **Back-End**: Node.js (Express) + TypeScript for typed routes, controllers, and data models.
+
+### 2. Redis
+- **Real-Time Notifications**: Redis Pub/Sub for instant updates when tasks change.
+- **Caching**: Store frequently accessed data (like user tasks) to reduce query times.
+
+### 3. MongoDB
+- **NoSQL Database**: Stores all persistent task data (title, description, priority, due date).
+- **Indexing**: Speeds up searches and filtering on fields like `priority`, `dueDate`.
+
+### 4. Cloud Platforms
+- **Hosting**: Deploy Node/React apps to Azure or Google Cloud.
+- **Database**: Use MongoDB Atlas or a managed DB instance.
+- **Storage**: For file attachments, either Azure Blob Storage or GCP Cloud Storage.
+
+### 5. Front-End Development
+- **UI/UX**: Tailwind CSS (plus a Catalyst UI kit) for modern, responsive design.
+- **State Management**: Handling user auth and data with React Context or Redux.
+
+### 6. Automated Testing
+- **API Tests**: Jest, Supertest for Node routes and integration tests.
+- **Front-End Tests**: Jest, React Testing Library, and Cypress for end-to-end testing.
+
+### 7. CI/CD
+- **Automated Builds**: GitHub Actions or Azure Pipelines.
+- **Deployment Pipelines**: Continuous integration for code quality checks and fast deployment to staging or production.
+
+---
+
+## Implementation Highlights
+
+### 1. The Front-End (React + Tailwind + Catalyst UI)
+- **Catalyst UI Kit** to speed up building login modals, dashboards, and input forms.
+- **Task Dashboard**: A table-driven layout for tasks, with advanced filters (priority, status, search text).
+- **Responsive Design**: Tailwind CSS ensures the UI looks great on mobile and desktop.
+
+### 2. The Back-End (Node.js + TypeScript + Express)
+- **server.ts** handles app initialization, middleware, and route mounting.
+- **MongoDB** (via Mongoose) for schema definitions and CRUD.
+- **Redis** for caching and Pub/Sub:
+  - Caches `GET /api/tasks` responses to reduce database load.
+  - Pub/Sub notifies connected clients when a task changes.
+
+#### Example of a Task Model
+
+```TypeScript
+import mongoose, { Schema, Document } from 'mongoose';
+export interface ITask extends Document {
+  title: string;
+  description: string;
+  priority: 'Low' | 'Medium' | 'High';
+  status: 'Pending' | 'In Progress' | 'Completed';
+  dueDate: Date;
+  userId: mongoose.Types.ObjectId;
+}
+
+const TaskSchema: Schema = new Schema({
+  title: { type: String, required: true },
+  description: { type: String, required: true },
+  priority: { type: String, enum: ['Low', 'Medium', 'High'], required: true },
+  status: { type: String, enum: ['Pending', 'In Progress', 'Completed'], required: true },
+  dueDate: { type: Date, required: true },
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+});
+
+export const Task = mongoose.model<ITask>('Task', TaskSchema');
+```
+
+### 3. Using MongoDB and Redis Together
+- **MongoDB** as the single source of truth:
+  - Stores tasks, user records, and historical changes.
+  - Ideal for dynamic schema and large data sets.
+- **Redis** as a high-speed cache layer:
+  - Speeds up common queries (like top tasks or user-specific tasks).
+  - Real-time notifications for updates or new tasks.
+
+### 4. Testing Setup
+- **Unit Tests**: For Mongoose models (e.g., the Task schema) and Redis connectivity.
+- **Integration Tests**: Supertest for route endpoints (CRUD ops).
+- **Front-End Testing**: Jest + React Testing Library for component tests, plus Cypress for end-to-end.
+
+#### Example Testing Snippet
+
+```TypeScript
+import mongoose from 'mongoose';
+import { Task } from '../models/Task';
+
+describe('Task Model Tests', () => {
+  beforeAll(async () => {
+    await mongoose.connect('mongodb://localhost:27017/testdb');
+  });
+
+  afterAll(async () => {
+    await mongoose.connection.dropDatabase();
+    await mongoose.connection.close();
+  });
+
+  it('should create a task successfully', async () => {
+    const task = await Task.create({
+      title: 'Test Task',
+      description: 'This is a test task.',
+      priority: 'High',
+      status: 'Pending',
+      dueDate: new Date(),
+      userId: new mongoose.Types.ObjectId(),
+    });
+    expect(task._id).toBeDefined();
+  });
+});
+```
+
+### 5. Deployment and CI/CD
+- **Environment Config**: Store keys for MongoDB Atlas and Redis in `.env` files, or use secure environment variables in Azure/GCP.
+- **Build and Test**: Lint, type-check, and test the code in a pipeline (GitHub Actions).
+- **Deploy**:
+  - **Azure App Service**: Node back-end, React front-end as a static site.
+  - **GCP**: Compute Engine or App Engine to run Node, plus GCP Storage for static files.
+
+---
+
+## Lessons Learned
+
+1. **Modular Architecture**
+   Splitting configs into `/config/mongo.ts` and `/config/redis.ts` keeps the code organized and easy to maintain.
+2. **Full-Stack TypeScript**
+   Sharing interfaces between front-end and back-end reduces errors and ensures consistency (e.g., `ITask`).
+3. **Redis + Mongo = Performance Gains**
+   Combining an in-memory store (Redis) with a NoSQL database (MongoDB) balances speed and persistence.
+4. **Testing Culture**
+   Investing in robust tests (unit, integration, end-to-end) ensures we can refactor quickly without regressions.
+5. **Cloud Deployment**
+   Leveraging Azure or GCP to quickly spin up reliable hosting, with continuous integration minimizing manual steps.
+
+---
+
+## Project Status & Next Steps
+
+- **Current State**:
+  - **Back-End**: Full CRUD functionality, caching, real-time updates.
+  - **Front-End**: Baseline React app with Tailwind styling, ready for integration and advanced features.
+  - **Tests**: Coverage for tasks, caching, and environment setups.
+
+- **What’s Next**:
+  1. **User Authentication**: JWT-based login/registration, role-based permissions.
+  2. **More Real-Time Features**: Using Redis Pub/Sub for live task dashboards.
+  3. **Deployment Pipeline**: GitHub Actions or Azure DevOps to automate test, build, and deploy cycles.
+  4. **UI Enhancements**: Tighter integration with Catalyst UI kit for a polished user experience.
+
+---
+
+## Conclusion
+
+This Task Manager project is a **hands-on refresher** in advanced TypeScript, distributed caching (Redis), cloud-hosted NoSQL databases (MongoDB), and modern front-end development. Each step— from setting up the schemas in Mongoose to orchestrating real-time updates via Redis Pub/Sub—reinforced best practices in scalable system design.
+
+The result? A **cloud-ready** application that’s easy to expand with new features like user authentication, AI-based task prioritization, or extended analytics. Whether you’re curious about Node/TypeScript, want to harness the power of Redis caching, or aim to build a robust full-stack app, this project offers a thorough blueprint for success.
