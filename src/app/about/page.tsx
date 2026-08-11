@@ -123,13 +123,6 @@ export default function About() {
                             Follow on LinkedIn
                         </SocialLink>
                         <SocialLink
-                            href="mailto:robert.neyrinck@frontpage.bio"
-                            icon={MailIcon}
-                            className="mt-8 border-t border-zinc-100 pt-8 dark:border-zinc-700/40"
-                        >
-                            robert.neyrinck@frontpage.bio
-                        </SocialLink>
-                        <SocialLink
                             href="mailto:robert.a.neyrinck@gmail.com"
                             icon={MailIcon}
                             className="mt-8 border-t border-zinc-100 pt-8 dark:border-zinc-700/40"

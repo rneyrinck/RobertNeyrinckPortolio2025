@@ -14,7 +14,7 @@ const projects = [
     name: 'Frontpage.bio',
     description:
       'Personal biography MVP with plans to expand into full digital identity management',
-    link: { href: 'https://www.frontpage.bio/profile/robert-neyrinck', label: 'frontpage.bio' },
+    link: { href: 'https://rneyrinck.pythonanywhere.com/profile/rneyrinck/', label: 'rneyrinck.pythonanywhere.com' },
     logo: logoFrontpage,
   },
   {
