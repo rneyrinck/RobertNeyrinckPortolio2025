@@ -196,28 +196,70 @@ function Role({role}: { role: Role }) {
 function Resume() {
     let resume: Array<Role> = [
         {
-            company: 'Frontpage',
-            title: 'CEO/CTO',
+            company: 'Independent Consulting',
+            title: 'Full-Stack & AI Systems Consultant',
+            // TODO: swap in a dedicated logo/mark for independent consulting work
             logo: logoFrontpage,
-            start: '2024',
+            start: {
+                label: '2025',
+                dateTime: '2025-06',
+            },
             end: {
                 label: 'Present',
                 dateTime: new Date().getFullYear().toString(),
             },
         },
         {
+            company: 'AudioEye',
+            title: 'Contract Software Engineer',
+            logo: logoAudioEye,
+            start: {
+                label: '2025',
+                dateTime: '2025-02',
+            },
+            end: {
+                label: '2026',
+                dateTime: '2026-06',
+            },
+        },
+        {
+            company: 'Frontpage',
+            title: 'CEO/CTO',
+            logo: logoFrontpage,
+            start: {
+                label: '2024',
+                dateTime: '2024-09',
+            },
+            end: {
+                label: '2025',
+                dateTime: '2025-02',
+            },
+        },
+        {
             company: 'SapphireStudios',
             title: 'Full Stack Developer',
             logo: logoSapphireStudios,
-            start: '2022',
-            end: '2024',
+            start: {
+                label: '2022',
+                dateTime: '2022-11',
+            },
+            end: {
+                label: '2024',
+                dateTime: '2024-09',
+            },
         },
         {
             company: 'AudioEye',
-            title: 'Accessibility Engineer',
+            title: 'JavaScript Engineer',
             logo: logoAudioEye,
-            start: '2022',
-            end: '2022',
+            start: {
+                label: '2022',
+                dateTime: '2022-04',
+            },
+            end: {
+                label: '2022',
+                dateTime: '2022-11',
+            },
         },
         {
             company: 'General Assembly',
