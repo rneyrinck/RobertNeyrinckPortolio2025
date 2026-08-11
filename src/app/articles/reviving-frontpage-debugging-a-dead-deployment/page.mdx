@@ -1,0 +1,66 @@
+import { ArticleLayout } from '@/components/ArticleLayout'
+
+export const article = {
+  author: 'Robert Neyrinck',
+  date: '2026-08-11',
+  title: 'Reviving Frontpage: Debugging a Dead Deployment',
+  description:
+    'Bringing a two-year-old Django project back online turned into a scavenger hunt through three unrelated bugs — an encoding mismatch, a misread env file, and a silent static-files failure.',
+}
+
+export const metadata = {
+  title: article.title,
+  description: article.description,
+}
+
+export default (props) => <ArticleLayout article={article} {...props} />
+
+I built Frontpage back in 2024 as a solo technical co-founder — a Django-based "bio builder" that let people manage a personal profile page: links, social accounts, a summary, all published to a clean public URL. It shipped, it worked, and then life moved on. The Render deployment lapsed, the repo sat untouched, and by the time I went looking for it again, `pip install -r requirements.txt` wouldn't even run.
+
+I didn't need it to handle real traffic. I just needed it visible again — a working link I could point recruiters to that actually demonstrates I ship things, not just talk about them. That low bar turned out to matter, because getting there meant working through three bugs that had nothing to do with each other.
+
+---
+
+## Bug one: a requirements file that wasn't UTF-8
+
+The very first `pip install` failed before touching a single package. `requirements.txt` turned out to be saved in UTF-16 — almost certainly a leftover from an old Windows IDE session two years back. Pip doesn't read UTF-16. One line fixed it:
+
+```bash
+iconv -f UTF-16LE -t UTF-8 requirements.txt | sed 's/\r$//' > requirements.txt
+```
+
+Small thing, but a good reminder that "it worked when I wrote it" and "it works when someone else clones it" are different claims, and only one of them was ever tested.
+
+---
+
+## Bug two: picking infrastructure that matches the ambition
+
+Render's free tier used to be an easy first stop, but for a project with zero expected traffic and zero urgency, I didn't want to reason about a Postgres connection string, a build script, and a Docker image just to get a static-ish site online. I moved to PythonAnywhere instead — genuinely free, no credit card, SQLite works fine against its persistent filesystem, and I could skip the whole Node/Tailwind build step because the compiled CSS was already checked into the repo.
+
+The lesson here wasn't technical so much as it was about matching the tool to the actual job. Not every project needs the infrastructure of a project that expects users.
+
+---
+
+## Bug three: the same variable, read two different ways
+
+Once the app was installed and migrated, I hit `DisallowedHost` — Django rejecting requests because `ALLOWED_HOSTS` was empty. I'd set it correctly in `.env`. The problem was *where* that `.env` got read from. `python-dotenv` resolves relative to the current working directory, and PythonAnywhere's WSGI process didn't have the working directory I assumed it did — so every environment variable I'd set was invisible to the actual running app, even though it worked fine when I ran `manage.py` by hand in a console sitting in the right folder.
+
+The real trap was that this bug hid a second one. Once I fixed `ALLOWED_HOSTS`, I hit a totally different error: `Missing staticfiles manifest entry for 'css/dist/styles.css'`. Both bugs traced back to the same root cause — I ran `collectstatic` at a moment where `DEBUG` was silently `True` (a stray value in `.env`, not the code), which meant Django used its plain static-file storage instead of the hashed manifest storage that `DEBUG=False` requires. The fix was almost boring once I found it:
+
+```bash
+python manage.py shell -c "from django.conf import settings; print(settings.DEBUG, settings.STATICFILES_STORAGE)"
+```
+
+One line, and the actual state of the world was staring back at me instead of what I assumed it was.
+
+---
+
+## What actually helped
+
+Nothing here was hard in isolation. What made it slow was that each bug presented itself as a *different kind* of failure — a build error, an HTTP 400, a 500 with a stack trace three layers deep in Django's templating internals — and it wasn't obvious at first that two of the three traced back to the same misread config file. I leaned on Claude heavily here, not to write the fixes for me, but to keep a clear read on *which* layer each error actually lived in, so I wasn't guessing across the wrong boundary. That's the part of AI-assisted debugging I've found genuinely useful in production work too: not code generation, but keeping the mental model straight when a system has more moving pieces than fit comfortably in your head at once.
+
+---
+
+## Where it stands now
+
+Frontpage is live again, migrations run clean, and I've got a real login to actually build my own profile on it — which felt like the right kind of closing the loop, using the tool I built to represent myself to the people it was originally built to help represent themselves. Total time from "this doesn't even install" to "this is live" was under an hour, once I stopped assuming and started checking.

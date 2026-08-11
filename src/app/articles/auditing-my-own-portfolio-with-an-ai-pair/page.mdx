@@ -1,0 +1,40 @@
+import { ArticleLayout } from '@/components/ArticleLayout'
+
+export const article = {
+  author: 'Robert Neyrinck',
+  date: '2026-08-11',
+  title: 'Auditing My Own Portfolio (With an AI Pair)',
+  description:
+    'I asked Claude to review this site honestly. It found a work history stuck eighteen months in the past, a dead contact email, and — worst of all for someone who does accessibility work — a couple of accessibility misses on my own portrait.',
+}
+
+export const metadata = {
+  title: article.title,
+  description: article.description,
+}
+
+export default (props) => <ArticleLayout article={article} {...props} />
+
+I hadn't touched this site in a while, and when I finally asked someone to look at it with fresh eyes, the honest answer was: it hadn't kept up with me. Not broken — just behind. The Work timeline stopped at "Frontpage, 2024–Present," which was true when I wrote it and had quietly become wrong the moment I took on a second AudioEye contract and started independent consulting work afterward. The most recent blog post was dated January 2025. Eighteen months of actual work had happened, and the site didn't know about any of it.
+
+---
+
+## The parts I didn't expect
+
+A few findings were the kind of thing I'd have caught eventually. The Work timeline being stale, sure. A dead `frontpage.bio` email address I no longer have access to, sure. But two accessibility issues on my *own* portfolio stung a little more, given that accessibility remediation is a meaningful chunk of my actual professional work.
+
+Both company logos in the Work section and my portrait photo on the About page were marked `alt=""` — which tells a screen reader to skip the image entirely, as if it carries no information. That's the right call for genuinely decorative images. It's the wrong call for a company logo (which identifies *which* company) or a portrait next to an introduction (which is, in fact, a picture of the person you're reading about). Small fixes — `alt={role.company}`, a real description on the portrait — but the kind of small fix that matters more on my site than most, precisely because of what I do for a living.
+
+---
+
+## Fixing it the way I'd want a candidate's code reviewed
+
+Rather than hand-editing files and hoping I remembered every change, I worked through this the way I'd want a PR reviewed on a team: one branch, incremental commits, an actual build check (`next build`) after each change before anything got pushed, and a PR description that told the story of what changed and why — including an honest checklist item flagging a placeholder logo I still need to swap out. It's a small project, but the habit doesn't scale down just because the stakes are low.
+
+---
+
+## The actual lesson
+
+The value of an outside review — human or AI — isn't that it knows things I don't. It's that it doesn't have the context I have, so it can't unconsciously fill gaps the way I do when I look at my own work. I read "Frontpage — 2024–Present" and my brain quietly appends everything I've done since, because I know it happened. A recruiter reading the same line doesn't get that update. Neither does a screen reader looking at `alt=""`.
+
+Keeping this site current is going to be a recurring task now, not a one-time fix — which is really just the practice of shipping software applied to the version of me on the internet.
