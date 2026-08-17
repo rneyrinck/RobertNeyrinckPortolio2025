@@ -10,8 +10,12 @@ export function WorkSection() {
           Selected work
         </h2>
         <div className="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-3">
-          {caseStudies.map((caseStudy) => (
-            <CaseStudyCard key={caseStudy.slug} caseStudy={caseStudy} />
+          {caseStudies.map((caseStudy, index) => (
+            <CaseStudyCard
+              key={caseStudy.slug}
+              caseStudy={caseStudy}
+              index={index}
+            />
           ))}
         </div>
       </Container>

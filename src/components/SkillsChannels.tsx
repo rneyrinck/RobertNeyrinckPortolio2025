@@ -68,7 +68,7 @@ export function SkillsChannels() {
         <h2 className="text-3xl font-bold tracking-tight text-signal-paper sm:text-4xl">
           How I work
         </h2>
-        <div className="mt-10 grid grid-cols-1 gap-x-8 gap-y-12 md:grid-cols-3">
+        <div className="mt-10 grid grid-cols-1 gap-x-8 gap-y-12 lg:grid-cols-3">
           {columns.map((column) => (
             <div
               key={column.heading}
@@ -79,13 +79,16 @@ export function SkillsChannels() {
               >
                 {column.heading}
               </h3>
-              <ul className="mt-4 flex flex-wrap gap-x-3 gap-y-2">
-                {column.items.map((item) => (
+              <ul className="mt-4 flex flex-wrap gap-x-1 gap-y-2">
+                {column.items.map((item, i) => (
                   <li
                     key={item}
                     className="font-mono text-sm text-signal-paper-dim"
                   >
                     {item}
+                    {i < column.items.length - 1 && (
+                      <span className="text-signal-paper-dim/40">,</span>
+                    )}
                   </li>
                 ))}
               </ul>
