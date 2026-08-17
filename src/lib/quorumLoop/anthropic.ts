@@ -1,6 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk'
 
-const MODEL = 'claude-3-5-haiku-latest'
+// Cheapest/fastest current-generation model, used for every stage of the
+// Quorum/Loop sequence to keep the whole thing well under the budget cap.
+const MODEL = 'claude-haiku-4-5-20251001'
 
 let client: Anthropic | null = null
 

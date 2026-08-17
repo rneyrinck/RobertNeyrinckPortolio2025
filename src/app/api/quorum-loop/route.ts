@@ -37,9 +37,9 @@ const MAX_OUTPUT_TOKENS: Record<StageName, number> = {
   synthesis: 260,
   'loop-critique': 200,
   'loop-revise': 260,
-  'reaction-engineer': 110,
-  'reaction-business': 110,
-  'reaction-stakeholder': 110,
+  'reaction-engineer': 170,
+  'reaction-business': 170,
+  'reaction-stakeholder': 170,
 }
 
 // Very small in-memory, per-IP rate limiter. Resets on cold start and does
