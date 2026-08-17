@@ -90,7 +90,7 @@ export async function POST(req: NextRequest) {
     })
   }
 
-  const captcha = await verifyTurnstileToken(body.turnstileToken)
+  const captcha = await verifyTurnstileToken(body.turnstileToken, ip)
   if (!captcha.success) {
     return new Response('Captcha verification failed', { status: 403 })
   }

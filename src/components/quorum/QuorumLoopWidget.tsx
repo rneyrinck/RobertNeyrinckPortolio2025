@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Turnstile } from 'react-turnstile'
+import { Turnstile, useTurnstile } from 'react-turnstile'
 
 import { consumeQuorumLoopStream } from '@/lib/quorumLoop/client'
 import { MAX_QUESTION_LENGTH } from '@/lib/quorumLoop/prompts'
@@ -11,6 +11,12 @@ import {
   type QuorumLoopEvent,
   type StageName,
 } from '@/lib/quorumLoop/types'
+
+// Kept in sync with TURNSTILE_ACTION in src/lib/quorumLoop/turnstile.ts —
+// duplicated rather than imported so this client component doesn't pull a
+// server-only module (which reads TURNSTILE_SECRET_KEY) into the browser
+// bundle.
+const TURNSTILE_ACTION = 'quorum-submit'
 
 type StageStatus = 'pending' | 'start' | 'done' | 'skipped' | 'error'
 
@@ -86,6 +92,7 @@ export function QuorumLoopWidget() {
 
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
   const captchaRequired = Boolean(siteKey)
+  const turnstile = useTurnstile()
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -131,6 +138,12 @@ export function QuorumLoopWidget() {
       setTopLevelError('Network error — please try again.')
     } finally {
       setRunning(false)
+      // Turnstile tokens are single-use — reset so the next submission
+      // gets a fresh one instead of silently failing captcha verification.
+      if (captchaRequired) {
+        turnstile.reset()
+        setCaptchaToken(undefined)
+      }
     }
   }
 
@@ -182,6 +195,7 @@ export function QuorumLoopWidget() {
           <div className="mt-3">
             <Turnstile
               sitekey={siteKey as string}
+              action={TURNSTILE_ACTION}
               onVerify={(token) => setCaptchaToken(token)}
               onExpire={() => setCaptchaToken(undefined)}
             />
