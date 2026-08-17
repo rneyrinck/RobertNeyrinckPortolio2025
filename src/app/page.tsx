@@ -30,9 +30,9 @@ function SocialLink({
     <Link
       href={href}
       aria-label={label}
-      className="group -m-1 rounded-full p-1 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal-teal"
+      className="group -m-1 rounded-full p-1 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal-amber"
     >
-      <Icon className="h-6 w-6 fill-zinc-500 transition group-hover:fill-zinc-600 dark:fill-zinc-400 dark:group-hover:fill-zinc-300" />
+      <Icon className="h-6 w-6 fill-signal-paper-dim transition group-hover:fill-signal-amber" />
     </Link>
   )
 }
@@ -42,11 +42,11 @@ export default function Home() {
     <>
       <Container className="mt-9">
         <div className="max-w-2xl">
-          <h1 className="font-display text-4xl font-bold tracking-tight text-zinc-800 sm:text-5xl dark:text-zinc-100">
+          <h1 className="font-display text-4xl font-bold tracking-tight text-signal-paper sm:text-5xl">
             Software engineer. Recovering salesperson. I ship things people can
             actually use.
           </h1>
-          <p className="mt-6 text-base text-zinc-600 dark:text-zinc-400">
+          <p className="mt-6 text-base text-signal-paper-dim">
             I&rsquo;m Robert — a full-stack engineer in Chicago building
             backends in Python/FastAPI, frontends in React and Vue, and
             AI-agentic systems that hold up outside a demo. I find the problem

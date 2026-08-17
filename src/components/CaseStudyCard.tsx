@@ -86,14 +86,14 @@ export function CaseStudyCard({ caseStudy }: { caseStudy: CaseStudy }) {
       animate={shouldReduceMotion ? { opacity: 1, y: 0 } : undefined}
       viewport={{ once: true, amount: 0.3 }}
       transition={{ duration: 0.6, ease: 'easeOut' }}
-      className="flex h-full flex-col gap-5 rounded-2xl bg-signal-navy p-6 shadow-lg shadow-black/30 ring-1 ring-white/10 sm:p-8"
+      className="flex h-full flex-col gap-5 rounded-2xl bg-signal-navy-2 p-6 shadow-lg shadow-black/30 ring-1 ring-white/10 sm:p-8"
     >
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h3 className="font-display text-xl font-bold text-white sm:text-2xl">
+          <h3 className="font-display text-xl font-bold text-signal-paper sm:text-2xl">
             {client}
           </h3>
-          <p className="mt-1 font-display text-sm font-medium text-zinc-300">
+          <p className="mt-1 font-display text-sm font-medium text-signal-paper-dim">
             {tagline}
           </p>
         </div>
@@ -101,7 +101,7 @@ export function CaseStudyCard({ caseStudy }: { caseStudy: CaseStudy }) {
           <p className="font-display text-2xl font-bold text-signal-amber">
             {metric}
           </p>
-          <p className="font-mono text-[0.6875rem] uppercase tracking-wide text-zinc-500">
+          <p className="font-mono text-[0.6875rem] uppercase tracking-wide text-signal-paper-dim">
             {metricLabel}
           </p>
         </div>
@@ -114,7 +114,7 @@ export function CaseStudyCard({ caseStudy }: { caseStudy: CaseStudy }) {
           <p className="font-mono text-[0.6875rem] uppercase tracking-wide text-signal-rose">
             Problem
           </p>
-          <p className="mt-1.5 text-sm leading-relaxed text-zinc-300">
+          <p className="mt-1.5 text-sm leading-relaxed text-signal-paper-dim">
             {problem}
           </p>
         </div>
@@ -122,7 +122,7 @@ export function CaseStudyCard({ caseStudy }: { caseStudy: CaseStudy }) {
           <p className="font-mono text-[0.6875rem] uppercase tracking-wide text-signal-teal">
             Approach
           </p>
-          <p className="mt-1.5 text-sm leading-relaxed text-zinc-300">
+          <p className="mt-1.5 text-sm leading-relaxed text-signal-paper-dim">
             {approach}
           </p>
         </div>
@@ -132,7 +132,7 @@ export function CaseStudyCard({ caseStudy }: { caseStudy: CaseStudy }) {
         {stack.map((item) => (
           <li
             key={item}
-            className="rounded-full border border-white/10 bg-signal-navy-2 px-2.5 py-1 font-mono text-[0.6875rem] uppercase tracking-wide text-zinc-400"
+            className="rounded-full border border-white/10 bg-signal-navy px-2.5 py-1 font-mono text-[0.6875rem] uppercase tracking-wide text-signal-paper-dim"
           >
             {item}
           </li>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import * as Diff from 'diff'
 import { Turnstile, useTurnstile } from 'react-turnstile'
 
 import { consumeQuorumLoopStream } from '@/lib/quorumLoop/client'
@@ -11,6 +12,7 @@ import {
   type QuorumLoopEvent,
   type StageName,
 } from '@/lib/quorumLoop/types'
+import { QUORUM_PRESETS } from '@/content/quorumPresets'
 
 // Kept in sync with TURNSTILE_ACTION in src/lib/quorumLoop/turnstile.ts —
 // duplicated rather than imported so this client component doesn't pull a
@@ -54,19 +56,23 @@ function PersonaCard({
   state: StageState
 }) {
   return (
-    <div className="rounded-xl border border-white/10 bg-signal-navy p-4">
+    <div className="rounded-xl border border-white/10 bg-signal-navy-2 p-4">
       <p className="font-mono text-xs uppercase tracking-wide text-signal-teal">
         {PERSONA_LABELS[persona]}
       </p>
-      <div className="mt-2 min-h-[2.5rem] text-sm text-zinc-300">
+      <div className="mt-2 min-h-[2.5rem] text-sm text-signal-paper-dim">
         {state.status === 'pending' && (
-          <span className="text-zinc-500">Waiting…</span>
+          <span className="text-signal-paper-dim/60">Waiting…</span>
         )}
         {state.status === 'start' && (
-          <span className="animate-pulse text-zinc-400">Thinking…</span>
+          <span className="animate-pulse text-signal-paper-dim">
+            Thinking…
+          </span>
         )}
         {state.status === 'skipped' && (
-          <span className="text-zinc-500">{state.reason ?? 'Skipped.'}</span>
+          <span className="text-signal-paper-dim/60">
+            {state.reason ?? 'Skipped.'}
+          </span>
         )}
         {state.status === 'error' && (
           <span className="text-signal-rose">
@@ -76,6 +82,44 @@ function PersonaCard({
         {state.status === 'done' && <p>{state.content}</p>}
       </div>
     </div>
+  )
+}
+
+// Word-level diff between the pre-Loop synthesis and the Loop-revised
+// synthesis, so a visitor can see exactly what the critique pass changed
+// instead of re-reading two near-identical paragraphs side by side.
+function SynthesisDiff({
+  original,
+  revised,
+}: {
+  original: string
+  revised: string
+}) {
+  const parts = Diff.diffWords(original, revised)
+
+  return (
+    <p className="text-sm leading-relaxed text-signal-paper-dim">
+      {parts.map((part, i) => {
+        if (part.added) {
+          return (
+            <span
+              key={i}
+              className="rounded bg-signal-teal/20 px-0.5 text-signal-paper"
+            >
+              {part.value}
+            </span>
+          )
+        }
+        if (part.removed) {
+          return (
+            <span key={i} className="text-signal-rose/70 line-through">
+              {part.value}
+            </span>
+          )
+        }
+        return <span key={i}>{part.value}</span>
+      })}
+    </p>
   )
 }
 
@@ -89,10 +133,22 @@ export function QuorumLoopWidget() {
   const [running, setRunning] = useState(false)
   const [hasRun, setHasRun] = useState(false)
   const [topLevelError, setTopLevelError] = useState<string | null>(null)
+  const [presetLabel, setPresetLabel] = useState<string | null>(null)
 
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
   const captchaRequired = Boolean(siteKey)
   const turnstile = useTurnstile()
+
+  function runPreset(presetId: string) {
+    const preset = QUORUM_PRESETS.find((p) => p.id === presetId)
+    if (!preset || running) return
+
+    setPresetLabel(preset.label)
+    setQuestion(preset.question)
+    setHasRun(true)
+    setTopLevelError(null)
+    setStages(preset.stages as Record<StageName, StageState>)
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -104,6 +160,7 @@ export function QuorumLoopWidget() {
 
     setRunning(true)
     setHasRun(true)
+    setPresetLabel(null)
     setTopLevelError(null)
     setStages(initialStages())
 
@@ -155,14 +212,14 @@ export function QuorumLoopWidget() {
   )
 
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white p-6 sm:p-8 dark:border-zinc-700/40 dark:bg-zinc-900/40">
+    <div className="rounded-2xl border border-signal-navy-2 bg-signal-navy-2/40 p-6 sm:p-8">
       <p className="font-mono text-xs uppercase tracking-wide text-signal-rose">
         The Quorum + Loop
       </p>
-      <h3 className="mt-2 font-display text-2xl font-bold text-zinc-800 dark:text-zinc-100">
+      <h3 className="mt-2 font-display text-2xl font-bold text-signal-paper">
         Ask a question, watch how I actually think through problems
       </h3>
-      <p className="mt-3 max-w-2xl text-sm text-zinc-600 dark:text-zinc-400">
+      <p className="mt-3 max-w-2xl text-sm text-signal-paper-dim">
         This is the real method behind the case studies above: run the question
         past three differently-profiled advisors — an engineer, a business
         owner, and the stakeholder living with the result — then have an agentic
@@ -171,6 +228,25 @@ export function QuorumLoopWidget() {
         this may occasionally skip a low-priority step to stay within budget.
       </p>
 
+      <div className="mt-6">
+        <p className="font-mono text-xs uppercase tracking-wide text-signal-paper-dim">
+          Or see a saved run instantly — no cost, no captcha
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {QUORUM_PRESETS.map((preset) => (
+            <button
+              key={preset.id}
+              type="button"
+              onClick={() => runPreset(preset.id)}
+              disabled={running}
+              className="rounded-full border border-white/10 bg-signal-navy px-3 py-1.5 text-xs font-medium text-signal-paper-dim transition hover:border-signal-amber/40 hover:text-signal-amber disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {preset.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <form onSubmit={handleSubmit} className="mt-6">
         <label htmlFor="quorum-question" className="sr-only">
           Your question
@@ -178,16 +254,17 @@ export function QuorumLoopWidget() {
         <textarea
           id="quorum-question"
           value={question}
-          onChange={(e) =>
+          onChange={(e) => {
+            setPresetLabel(null)
             setQuestion(e.target.value.slice(0, MAX_QUESTION_LENGTH))
-          }
+          }}
           placeholder="Ask anything — e.g. “Should we rebuild this in-house or buy?”"
           rows={3}
           maxLength={MAX_QUESTION_LENGTH}
           disabled={running}
-          className="w-full resize-none rounded-md border border-zinc-900/10 bg-white px-3 py-2 text-sm text-zinc-800 shadow-sm placeholder:text-zinc-400 focus:border-signal-teal focus:outline-none focus:ring-2 focus:ring-signal-teal/40 disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-800/50 dark:text-zinc-100 dark:placeholder:text-zinc-500"
+          className="w-full resize-none rounded-md border border-white/10 bg-signal-navy px-3 py-2 text-sm text-signal-paper shadow-sm placeholder:text-signal-paper-dim/60 focus:border-signal-amber focus:outline-none focus:ring-2 focus:ring-signal-amber/40 disabled:opacity-60"
         />
-        <div className="mt-1 text-right font-mono text-xs text-zinc-400">
+        <div className="mt-1 text-right font-mono text-xs text-signal-paper-dim">
           {question.length}/{MAX_QUESTION_LENGTH}
         </div>
 
@@ -213,7 +290,7 @@ export function QuorumLoopWidget() {
           disabled={
             running || !question.trim() || (captchaRequired && !captchaToken)
           }
-          className="mt-4 inline-flex items-center justify-center rounded-md bg-zinc-800 px-4 py-2 text-sm font-semibold text-zinc-100 transition hover:bg-zinc-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal-teal disabled:cursor-not-allowed disabled:opacity-50 dark:bg-zinc-700 dark:hover:bg-zinc-600"
+          className="mt-4 inline-flex items-center justify-center rounded-md bg-signal-amber px-4 py-2 text-sm font-semibold text-signal-navy transition hover:bg-signal-amber/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal-amber disabled:cursor-not-allowed disabled:opacity-50"
         >
           {running ? 'Running the quorum…' : 'Run the quorum'}
         </button>
@@ -221,8 +298,15 @@ export function QuorumLoopWidget() {
 
       {hasRun && (
         <div className="mt-8 space-y-6" aria-live="polite">
+          {presetLabel && (
+            <p className="rounded-md border border-white/10 bg-signal-navy px-3 py-2 font-mono text-xs uppercase tracking-wide text-signal-paper-dim">
+              Saved run: {presetLabel} — replayed instantly, not a live model
+              call
+            </p>
+          )}
+
           <div>
-            <p className="font-mono text-xs uppercase tracking-wide text-zinc-400">
+            <p className="font-mono text-xs uppercase tracking-wide text-signal-paper-dim">
               Quorum
             </p>
             <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -233,18 +317,20 @@ export function QuorumLoopWidget() {
           </div>
 
           {synthesis.status !== 'pending' && (
-            <div className="rounded-xl border border-signal-amber/30 bg-signal-navy p-4">
+            <div className="rounded-xl border border-signal-amber/30 bg-signal-navy-2 p-4">
               <p className="font-mono text-xs uppercase tracking-wide text-signal-amber">
                 Synthesis
               </p>
-              <div className="mt-2 text-sm text-zinc-200">
+              <div className="mt-2 text-sm text-signal-paper-dim">
                 {synthesis.status === 'start' && (
-                  <span className="animate-pulse text-zinc-400">
+                  <span className="animate-pulse text-signal-paper-dim">
                     Synthesizing…
                   </span>
                 )}
                 {synthesis.status === 'skipped' && (
-                  <span className="text-zinc-500">{synthesis.reason}</span>
+                  <span className="text-signal-paper-dim/60">
+                    {synthesis.reason}
+                  </span>
                 )}
                 {synthesis.status === 'done' && <p>{synthesis.content}</p>}
               </div>
@@ -253,43 +339,65 @@ export function QuorumLoopWidget() {
 
           {(critique.status !== 'pending' || revised.status !== 'pending') && (
             <div>
-              <p className="font-mono text-xs uppercase tracking-wide text-zinc-400">
+              <p className="font-mono text-xs uppercase tracking-wide text-signal-paper-dim">
                 Loop
               </p>
               <div className="mt-3 space-y-3">
                 {critique.status !== 'pending' && (
-                  <div className="rounded-xl border border-signal-rose/30 bg-signal-navy p-4">
+                  <div className="rounded-xl border border-signal-rose/30 bg-signal-navy-2 p-4">
                     <p className="font-mono text-xs uppercase tracking-wide text-signal-rose">
                       Critique
                     </p>
-                    <div className="mt-2 text-sm text-zinc-200">
+                    <div className="mt-2 text-sm text-signal-paper-dim">
                       {critique.status === 'start' && (
-                        <span className="animate-pulse text-zinc-400">
+                        <span className="animate-pulse text-signal-paper-dim">
                           Critiquing the synthesis…
                         </span>
                       )}
                       {critique.status === 'skipped' && (
-                        <span className="text-zinc-500">{critique.reason}</span>
+                        <span className="text-signal-paper-dim/60">
+                          {critique.reason}
+                        </span>
                       )}
                       {critique.status === 'done' && <p>{critique.content}</p>}
                     </div>
                   </div>
                 )}
                 {revised.status !== 'pending' && (
-                  <div className="rounded-xl border border-signal-amber/30 bg-signal-navy p-4">
+                  <div className="rounded-xl border border-signal-amber/30 bg-signal-navy-2 p-4">
                     <p className="font-mono text-xs uppercase tracking-wide text-signal-amber">
                       Revised synthesis
                     </p>
-                    <div className="mt-2 text-sm text-zinc-200">
+                    <p className="mt-1 font-mono text-[0.6875rem] text-signal-paper-dim/70">
+                      <span className="text-signal-rose/70 line-through">
+                        struck
+                      </span>{' '}
+                      = removed by the critique,{' '}
+                      <span className="rounded bg-signal-teal/20 px-0.5 text-signal-paper">
+                        highlighted
+                      </span>{' '}
+                      = added
+                    </p>
+                    <div className="mt-2 text-sm text-signal-paper-dim">
                       {revised.status === 'start' && (
-                        <span className="animate-pulse text-zinc-400">
+                        <span className="animate-pulse text-signal-paper-dim">
                           Revising…
                         </span>
                       )}
                       {revised.status === 'skipped' && (
-                        <span className="text-zinc-500">{revised.reason}</span>
+                        <span className="text-signal-paper-dim/60">
+                          {revised.reason}
+                        </span>
                       )}
-                      {revised.status === 'done' && <p>{revised.content}</p>}
+                      {revised.status === 'done' &&
+                        (synthesis.status === 'done' && synthesis.content ? (
+                          <SynthesisDiff
+                            original={synthesis.content}
+                            revised={revised.content ?? ''}
+                          />
+                        ) : (
+                          <p>{revised.content}</p>
+                        ))}
                     </div>
                   </div>
                 )}
@@ -299,7 +407,7 @@ export function QuorumLoopWidget() {
 
           {anyReactionStarted && (
             <div>
-              <p className="font-mono text-xs uppercase tracking-wide text-zinc-400">
+              <p className="font-mono text-xs uppercase tracking-wide text-signal-paper-dim">
                 Final word
               </p>
               <ul className="mt-3 space-y-2">
@@ -309,18 +417,20 @@ export function QuorumLoopWidget() {
                   return (
                     <li
                       key={p}
-                      className="rounded-lg border border-white/10 bg-signal-navy px-4 py-3 text-sm text-zinc-200"
+                      className="rounded-lg border border-white/10 bg-signal-navy-2 px-4 py-3 text-sm text-signal-paper-dim"
                     >
                       <span className="font-mono text-xs uppercase tracking-wide text-signal-teal">
                         {PERSONA_LABELS[p]}:{' '}
                       </span>
                       {state.status === 'start' && (
-                        <span className="animate-pulse text-zinc-400">
+                        <span className="animate-pulse text-signal-paper-dim">
                           Reacting…
                         </span>
                       )}
                       {state.status === 'skipped' && (
-                        <span className="text-zinc-500">{state.reason}</span>
+                        <span className="text-signal-paper-dim/60">
+                          {state.reason}
+                        </span>
                       )}
                       {state.status === 'done' && <span>{state.content}</span>}
                     </li>

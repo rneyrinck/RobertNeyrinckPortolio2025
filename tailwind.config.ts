@@ -35,6 +35,8 @@ export default {
         'signal-amber': '#E8A33D',
         'signal-teal': '#4FB3A9',
         'signal-rose': '#D9706A',
+        'signal-paper': '#F2F0EA',
+        'signal-paper-dim': '#9BA0AD',
       },
       fontFamily: {
         sans: ['var(--font-inter)', 'ui-sans-serif', 'system-ui'],

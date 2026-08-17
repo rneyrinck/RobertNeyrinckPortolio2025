@@ -46,7 +46,7 @@ function RoleItem({ role }: { role: Role }) {
 
   return (
     <li className="flex gap-4">
-      <div className="relative mt-1 flex h-10 w-10 flex-none items-center justify-center rounded-full shadow-md shadow-zinc-800/5 ring-1 ring-zinc-900/5 dark:border dark:border-zinc-700/50 dark:bg-zinc-800 dark:ring-0">
+      <div className="relative mt-1 flex h-10 w-10 flex-none items-center justify-center rounded-full border border-signal-navy-2 bg-signal-navy-2 shadow-md shadow-black/20 ring-0">
         <Image
           src={role.logo}
           alt=""
@@ -56,16 +56,16 @@ function RoleItem({ role }: { role: Role }) {
       </div>
       <dl className="flex flex-auto flex-wrap gap-x-2">
         <dt className="sr-only">Company</dt>
-        <dd className="w-full flex-none font-display text-sm font-medium text-zinc-900 dark:text-zinc-100">
+        <dd className="w-full flex-none font-display text-sm font-medium text-signal-paper">
           {role.company}
         </dd>
         <dt className="sr-only">Role</dt>
-        <dd className="text-xs text-zinc-500 dark:text-zinc-400">
+        <dd className="text-xs text-signal-paper-dim">
           {role.title}
         </dd>
         <dt className="sr-only">Date</dt>
         <dd
-          className="ml-auto font-mono text-xs text-zinc-400 dark:text-zinc-500"
+          className="ml-auto font-mono text-xs text-signal-paper-dim"
           aria-label={`${startLabel} until ${endLabel}`}
         >
           <time dateTime={startDate}>{startLabel}</time>{' '}
@@ -73,7 +73,7 @@ function RoleItem({ role }: { role: Role }) {
           <time dateTime={endDate}>{endLabel}</time>
         </dd>
         {role.summary && (
-          <dd className="mt-1 w-full text-sm text-zinc-600 dark:text-zinc-400">
+          <dd className="mt-1 w-full text-sm text-signal-paper-dim">
             {role.summary}
           </dd>
         )}
@@ -134,10 +134,10 @@ export default function ResumePage() {
   return (
     <Container className="mt-16 sm:mt-32">
       <header className="max-w-2xl">
-        <h1 className="font-display text-4xl font-bold tracking-tight text-zinc-800 sm:text-5xl dark:text-zinc-100">
+        <h1 className="font-display text-4xl font-bold tracking-tight text-signal-paper sm:text-5xl">
           Resume
         </h1>
-        <p className="mt-6 text-base text-zinc-600 dark:text-zinc-400">
+        <p className="mt-6 text-base text-signal-paper-dim">
           Full-stack software engineer (Python/FastAPI/Django, Vue/React,
           AWS/GCP) with web accessibility and AI-agentic integration experience
           — based in Chicago.
@@ -155,7 +155,7 @@ export default function ResumePage() {
           className="group mt-10"
         >
           Download CV
-          <ArrowDownIcon className="h-4 w-4 stroke-zinc-400 transition group-active:stroke-zinc-600 dark:group-hover:stroke-zinc-50 dark:group-active:stroke-zinc-50" />
+          <ArrowDownIcon className="h-4 w-4 stroke-signal-paper-dim transition group-hover:stroke-signal-paper group-active:stroke-signal-paper" />
         </Button>
       </div>
     </Container>
