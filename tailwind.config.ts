@@ -24,5 +24,22 @@ export default {
       '9xl': ['8rem', { lineHeight: '1' }],
     },
     typography: typographyStyles,
+    extend: {
+      // "Signal readout" design language: locked palette for case-study
+      // cards and the Quorum/Loop widgets. Namespaced under `signal-*` so
+      // it doesn't collide with Tailwind's built-in amber/teal/rose scales
+      // still used elsewhere in the base template.
+      colors: {
+        'signal-navy': '#10141F',
+        'signal-amber': '#E8A33D',
+        'signal-teal': '#4FB3A9',
+        'signal-rose': '#D9706A',
+      },
+      fontFamily: {
+        sans: ['var(--font-inter)', 'ui-sans-serif', 'system-ui'],
+        display: ['var(--font-space-grotesk)', 'ui-sans-serif', 'system-ui'],
+        mono: ['var(--font-jetbrains-mono)', 'ui-monospace', 'monospace'],
+      },
+    },
   },
 } satisfies Config
