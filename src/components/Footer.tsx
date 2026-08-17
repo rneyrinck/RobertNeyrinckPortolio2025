@@ -33,9 +33,9 @@ function FooterSocialLink({
     <Link
       href={href}
       aria-label={label}
-      className="group -m-1 rounded-full p-1 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal-teal"
+      className="group -m-1 rounded-full p-1 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal-amber"
     >
-      <Icon className="h-5 w-5 fill-zinc-500 transition group-hover:fill-signal-teal dark:fill-zinc-400 dark:group-hover:fill-signal-teal" />
+      <Icon className="h-5 w-5 fill-signal-paper-dim transition group-hover:fill-signal-amber" />
     </Link>
   )
 }
@@ -44,10 +44,10 @@ export function Footer() {
   return (
     <footer className="mt-32 flex-none">
       <ContainerOuter>
-        <div className="border-t border-zinc-100 pb-10 pt-10 dark:border-zinc-700/40">
+        <div className="border-t border-signal-navy-2 pb-10 pt-10">
           <ContainerInner>
             <div className="flex flex-col items-center justify-between gap-6 sm:flex-row">
-              <p className="font-display text-sm font-medium text-zinc-800 dark:text-zinc-200">
+              <p className="font-display text-sm font-medium text-signal-paper">
                 Robert Neyrinck
               </p>
               <div className="flex items-center gap-5">
@@ -67,7 +67,7 @@ export function Footer() {
                   icon={MailIcon}
                 />
               </div>
-              <p className="text-sm text-zinc-400 dark:text-zinc-500">
+              <p className="text-sm text-signal-paper-dim">
                 &copy; {new Date().getFullYear()} Robert Neyrinck.
               </p>
             </div>

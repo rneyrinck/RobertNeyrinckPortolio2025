@@ -50,7 +50,7 @@ export default function RootLayout({
       className={`h-full antialiased ${inter.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable}`}
       suppressHydrationWarning
     >
-      <body className="flex h-full bg-zinc-50 font-sans dark:bg-black">
+      <body className="flex h-full bg-signal-navy font-sans text-signal-paper">
         <Providers>
           <div className="flex w-full">
             <Layout>{children}</Layout>

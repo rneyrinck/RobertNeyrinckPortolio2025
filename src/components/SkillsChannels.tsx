@@ -65,7 +65,7 @@ export function SkillsChannels() {
   return (
     <section id="skills" className="mt-16 sm:mt-32">
       <Container>
-        <h2 className="text-3xl font-bold tracking-tight text-zinc-800 sm:text-4xl dark:text-zinc-100">
+        <h2 className="text-3xl font-bold tracking-tight text-signal-paper sm:text-4xl">
           How I work
         </h2>
         <div className="mt-10 grid grid-cols-1 gap-x-8 gap-y-12 md:grid-cols-3">
@@ -83,7 +83,7 @@ export function SkillsChannels() {
                 {column.items.map((item) => (
                   <li
                     key={item}
-                    className="font-mono text-sm text-zinc-600 dark:text-zinc-400"
+                    className="font-mono text-sm text-signal-paper-dim"
                   >
                     {item}
                   </li>
