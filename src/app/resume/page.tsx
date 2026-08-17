@@ -84,15 +84,6 @@ function RoleItem({ role }: { role: Role }) {
 
 const resume: Array<Role> = [
   {
-    company: 'Independent Consulting',
-    title: 'Full-Stack & AI Systems Consultant',
-    logo: logoFrontpage,
-    start: { label: '2024', dateTime: '2024-09' },
-    end: { label: 'Present', dateTime: new Date().getFullYear().toString() },
-    summary:
-      'Concurrent engagements including DubClub, Superstar Agency, and AudioEye — see case studies above.',
-  },
-  {
     company: 'AudioEye',
     title: 'Software Engineer, Web Accessibility (Contract)',
     logo: logoAudioEye,
@@ -150,7 +141,8 @@ export default function ResumePage() {
           ))}
         </ol>
         <Button
-          href="https://docs.google.com/document/d/e/2PACX-1vTwa-RHyde3DBlPqpXVIP-ziKG2C4rpy5Aon6le06CC7DhHiYq6oYl-17EdkiauZfA4xP2tmkjFTiUf/pub"
+          href="/Robert-Neyrinck-Resume.pdf"
+          download="Robert-Neyrinck-Resume.pdf"
           variant="secondary"
           className="group mt-10"
         >
