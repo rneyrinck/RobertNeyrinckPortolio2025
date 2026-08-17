@@ -67,7 +67,17 @@ function SignalLine() {
 
 export function CaseStudyCard({ caseStudy }: { caseStudy: CaseStudy }) {
   let shouldReduceMotion = useReducedMotion()
-  let { client, problem, approach, outcome, stack, href, linkLabel } = caseStudy
+  let {
+    client,
+    tagline,
+    problem,
+    approach,
+    metric,
+    metricLabel,
+    stack,
+    href,
+    linkLabel,
+  } = caseStudy
 
   return (
     <motion.article
@@ -78,27 +88,51 @@ export function CaseStudyCard({ caseStudy }: { caseStudy: CaseStudy }) {
       transition={{ duration: 0.6, ease: 'easeOut' }}
       className="flex h-full flex-col gap-5 rounded-2xl bg-signal-navy p-6 shadow-lg shadow-black/30 ring-1 ring-white/10 sm:p-8"
     >
-      <p className="font-mono text-xs uppercase tracking-wide text-signal-rose">
-        {problem}
-      </p>
-
-      <h3 className="font-display text-xl font-bold text-white sm:text-2xl">
-        {client}
-      </h3>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h3 className="font-display text-xl font-bold text-white sm:text-2xl">
+            {client}
+          </h3>
+          <p className="mt-1 font-display text-sm font-medium text-zinc-300">
+            {tagline}
+          </p>
+        </div>
+        <div className="text-right">
+          <p className="font-display text-2xl font-bold text-signal-amber">
+            {metric}
+          </p>
+          <p className="font-mono text-[0.6875rem] uppercase tracking-wide text-zinc-500">
+            {metricLabel}
+          </p>
+        </div>
+      </div>
 
       <SignalLine />
 
-      <p className="text-sm leading-relaxed text-zinc-300">{approach}</p>
-
-      <p className="font-mono text-sm font-semibold text-signal-amber">
-        {outcome}
-      </p>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
+          <p className="font-mono text-[0.6875rem] uppercase tracking-wide text-signal-rose">
+            Problem
+          </p>
+          <p className="mt-1.5 text-sm leading-relaxed text-zinc-300">
+            {problem}
+          </p>
+        </div>
+        <div>
+          <p className="font-mono text-[0.6875rem] uppercase tracking-wide text-signal-teal">
+            Approach
+          </p>
+          <p className="mt-1.5 text-sm leading-relaxed text-zinc-300">
+            {approach}
+          </p>
+        </div>
+      </div>
 
       <ul className="flex flex-wrap gap-2" aria-label="Tech stack">
         {stack.map((item) => (
           <li
             key={item}
-            className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 font-mono text-[0.6875rem] uppercase tracking-wide text-zinc-400"
+            className="rounded-full border border-white/10 bg-signal-navy-2 px-2.5 py-1 font-mono text-[0.6875rem] uppercase tracking-wide text-zinc-400"
           >
             {item}
           </li>

@@ -31,6 +31,7 @@ export default {
       // still used elsewhere in the base template.
       colors: {
         'signal-navy': '#10141F',
+        'signal-navy-2': '#171C29',
         'signal-amber': '#E8A33D',
         'signal-teal': '#4FB3A9',
         'signal-rose': '#D9706A',
