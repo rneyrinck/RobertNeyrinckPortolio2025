@@ -1,6 +1,10 @@
 import { NextRequest } from 'next/server'
 
-import { BudgetTracker, estimateTokens } from '@/lib/quorumLoop/budget'
+import {
+  BudgetTracker,
+  estimateCostUsd,
+  estimateTokens,
+} from '@/lib/quorumLoop/budget'
 import { callModel, isConfigured } from '@/lib/quorumLoop/anthropic'
 import {
   loopCritiqueUserPrompt,
@@ -44,8 +48,9 @@ const MAX_OUTPUT_TOKENS: Record<StageName, number> = {
 
 // Very small in-memory, per-IP rate limiter. Resets on cold start and does
 // not coordinate across instances — it's a cheap defense-in-depth layer
-// alongside the Turnstile captcha, not a substitute for it.
-const RATE_LIMIT_WINDOW_MS = 60_000
+// alongside the Turnstile captcha, not a substitute for it. 3/hour matches
+// how rarely a real visitor would run this more than a couple of times.
+const RATE_LIMIT_WINDOW_MS = 60 * 60_000
 const RATE_LIMIT_MAX_REQUESTS = 3
 const rateLimitHits = new Map<string, number[]>()
 
@@ -57,6 +62,36 @@ function isRateLimited(ip: string): boolean {
   hits.push(now)
   rateLimitHits.set(ip, hits)
   return hits.length > RATE_LIMIT_MAX_REQUESTS
+}
+
+// A per-sequence $0.30 cap bounds any single visitor's cost, but the real
+// risk in production is *volume* — many sequences from many IPs. This is a
+// coarse, same-instance-only global backstop: once total spend for the
+// calendar day (server clock) crosses the ceiling, the widget falls back
+// to a friendly message instead of placing more model calls. Doesn't
+// coordinate across serverless instances/regions or survive a cold start —
+// it's a blunt safety net, not a precise budget system.
+const DAILY_GLOBAL_BUDGET_USD = Number(
+  process.env.QUORUM_LOOP_DAILY_BUDGET_USD ?? '5',
+)
+let dailySpendDate = ''
+let dailySpendUsd = 0
+
+function todayKey() {
+  return new Date().toISOString().slice(0, 10)
+}
+
+function recordGlobalSpend(usd: number) {
+  const today = todayKey()
+  if (dailySpendDate !== today) {
+    dailySpendDate = today
+    dailySpendUsd = 0
+  }
+  dailySpendUsd += usd
+}
+
+function isDailyBudgetExceeded(): boolean {
+  return dailySpendDate === todayKey() && dailySpendUsd >= DAILY_GLOBAL_BUDGET_USD
 }
 
 function sse(event: QuorumLoopEvent) {
@@ -95,20 +130,18 @@ export async function POST(req: NextRequest) {
     return new Response('Captcha verification failed', { status: 403 })
   }
 
-  if (!isConfigured()) {
-    // Demo mode: no ANTHROPIC_API_KEY set. Return a single friendly event
-    // instead of erroring, so the widget stays usable while wiring up a
-    // key separately.
+  if (!isConfigured() || isDailyBudgetExceeded()) {
+    // Demo mode (no ANTHROPIC_API_KEY) or the daily global spend ceiling
+    // has been hit — return a single friendly event instead of erroring or
+    // silently placing more model calls.
+    const reason = !isConfigured()
+      ? 'This widget is running in demo mode — the site owner hasn’t connected a model API key yet.'
+      : 'This widget has hit its usage budget for today — check back tomorrow.'
     const stream = new ReadableStream({
       start(controller) {
         controller.enqueue(
           new TextEncoder().encode(
-            sse({
-              stage: 'error',
-              status: 'error',
-              reason:
-                'This widget is running in demo mode — the site owner hasn’t connected a model API key yet.',
-            }),
+            sse({ stage: 'error', status: 'error', reason }),
           ),
         )
         controller.close()
@@ -164,6 +197,9 @@ export async function POST(req: NextRequest) {
             MAX_OUTPUT_TOKENS[stage],
           )
           budget.recordUsage(result.inputTokens, result.outputTokens)
+          recordGlobalSpend(
+            estimateCostUsd(result.inputTokens, result.outputTokens),
+          )
           emit({ stage, status: 'done', content: result.text })
           return result.text
         } catch (err) {

@@ -30,6 +30,9 @@ const columns: SkillsColumn[] = [
       'Docker',
       'GitHub Actions / CircleCI',
       'CI/CD',
+      'Playwright',
+      'pytest',
+      'Jest',
     ],
   },
   {
